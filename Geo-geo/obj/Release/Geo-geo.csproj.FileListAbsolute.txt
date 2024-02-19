@@ -1,0 +1,8 @@
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Release\Geo-geo.dll
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Release\Geo-geo.pdb
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Release\AcMPolygonMGD.dll
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Release\Geo-geo.csproj.AssemblyReference.cache
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Release\Geo-geo.csproj.CoreCompileInputs.cache
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Release\Geo-geo.csproj.CopyComplete
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Release\Geo-geo.dll
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Release\Geo-geo.pdb
