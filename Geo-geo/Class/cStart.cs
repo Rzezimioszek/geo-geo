@@ -12,6 +12,9 @@ using Geo_geo.Class;
 using System.Drawing;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
+using System.IO;
+using System.Reflection;
+using System.Security.Policy;
 
 namespace Geo_geo
 {
@@ -53,6 +56,16 @@ namespace Geo_geo
         public void cmdBlokEdit() {
 
             String filename = "Z:\\Programy\\MAKRA\\geogeo\\bloki.dwg";
+
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+
+            // String filename = "\\bloki.dwg";
+
+            //string name = Directory.GetCurrentDirectory();
+            //ed.WriteMessage($"1: {name}");
+
+            string name = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            filename = $"{name}\\bloki.dwg";
 
             System.Diagnostics.Process.Start(filename);
 
