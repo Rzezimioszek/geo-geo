@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Geo_geo.Class {
     internal class cBlocks {
@@ -20,11 +21,22 @@ namespace Geo_geo.Class {
 
             string fileName;
 
+            /*
             PromptSaveFileOptions saveOpts = new PromptSaveFileOptions("Wybierz plik do zapisu");
             saveOpts.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
-
             PromptFileNameResult fileResult = ed.GetFileNameForSave(saveOpts);
             if (fileResult.Status != PromptStatus.OK) {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
+
+            fileName = fileResult.StringResult;
+            */
+
+            cFileDlg dlg = new cFileDlg();
+            fileName = dlg.SaveDlg();
+
+            if (fileName == "return") {
                 ed.WriteMessage("\nError opening the file or no file selected!");
                 return;
             }
@@ -32,7 +44,7 @@ namespace Geo_geo.Class {
             TypedValue[] typedValueArray = new TypedValue[1];
             typedValueArray.SetValue((object)new TypedValue(0, (object)"TEXT"), 0);
 
-            fileName = fileResult.StringResult;
+            
 
 
             PromptSelectionResult selectionResult = ed.GetSelection();
@@ -60,11 +72,6 @@ namespace Geo_geo.Class {
                         if (entity == null) {
                             continue;
                         }
-
-                        //
-                        //
-                        //
-
 
                         string objType = entity.GetType().Name;
                         double wspXP = 0.0;
@@ -119,6 +126,134 @@ namespace Geo_geo.Class {
             }
         }
 
+
+        public void GetSelectedBlocksAtrXY() {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+
+            string fileName;
+
+            /*
+            PromptSaveFileOptions saveOpts = new PromptSaveFileOptions("Wybierz plik do zapisu");
+            saveOpts.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
+            PromptFileNameResult fileResult = ed.GetFileNameForSave(saveOpts);
+            if (fileResult.Status != PromptStatus.OK) {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
+            fileName = fileResult.StringResult;
+            */
+
+            cFileDlg dlg = new cFileDlg();
+            fileName = dlg.SaveDlg();
+
+            if (fileName == "return") {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
+
+            TypedValue[] typedValueArray = new TypedValue[1];
+            typedValueArray.SetValue((object)new TypedValue(0, (object)"TEXT"), 0);
+
+            
+
+
+            PromptSelectionResult selectionResult = ed.GetSelection();
+            if (selectionResult.Status != PromptStatus.OK) {
+                ed.WriteMessage("Nie wybrano elementów.");
+                return;
+            }
+
+            SelectionSet selectionSet = selectionResult.Value;
+
+            /*
+            SelectionFilter selectionFilter = new SelectionFilter(typedValueArray);
+            PromptSelectionResult selection = ed.GetSelection(selectionFilter);
+            if (selection.Status != PromptStatus.OK)
+                return;
+            */
+
+            int lp = 0;
+
+            using (StreamWriter streamWriter = new StreamWriter(fileName)) {
+
+                streamWriter.WriteLine($"Y\tX\tH\tLayer\tName\tATR...\t");
+
+                foreach (SelectedObject selectedObject in selectionSet) {
+                    using (Transaction trans = db.TransactionManager.StartTransaction()) {
+                        Entity entity = trans.GetObject(selectedObject.ObjectId, OpenMode.ForRead) as Entity;
+                        if (entity == null) {
+                            continue;
+                        }
+
+                        //
+                        //
+                        //
+
+
+                        string objType = entity.GetType().Name;
+                        double wspXP = 0.0;
+                        double wspYP = 0.0;
+                        string atr;
+
+                        string str = "";
+                        string id = "";
+
+                        string name;
+                        string layer;
+
+
+                        if (objType == "BlockReference") {
+                            BlockReference blockRef = entity as BlockReference;
+                            wspXP = blockRef.Position.X;
+                            wspYP = blockRef.Position.Y;
+
+                            name = blockRef.Name;
+                            layer = blockRef.Layer.ToString();
+
+                            AttributeCollection attCol = blockRef.AttributeCollection;
+
+                           
+
+                            str = $"{blockRef.Position.X.ToString()}\t{blockRef.Position.Y.ToString()}\t{blockRef.Position.Z.ToString()}\t{layer}\t{name}\t";
+
+                            foreach (ObjectId attId in attCol) {
+
+                                AttributeReference attRef = (AttributeReference)trans.GetObject(attId, OpenMode.ForRead);
+
+                                if (attRef.Tag == "ID") { id = attRef.TextString; }
+
+
+                                //str = (str +  attRef.Tag + "\t");
+
+
+                                str = (str + attRef.TextString + "\t");
+
+                                /* Przypisanie wartości pola "Pochodzenie" na podstawie id 
+                                if ((attRef.Tag == "POCHODZENIE") && (id == "E-W33")){
+                                    AttributeReference attWrt = (AttributeReference)trans.GetObject(attId, OpenMode.ForWrite);
+                                    attWrt.TextString = $"var: {id}";
+                                }
+                                */
+
+                            }
+                            streamWriter.WriteLine(str);
+                            lp++;
+
+                        } else {
+                            continue;
+                        }
+
+                        ed.WriteMessage($"\n{lp}");
+
+                        trans.Commit();
+                    }
+                }
+            }
+        }
+
         public void SetSelectedBlocksAtr() {
 
             Document doc = Application.DocumentManager.MdiActiveDocument;
@@ -130,7 +265,7 @@ namespace Geo_geo.Class {
             string fileContent;
             string[] lines;
 
-
+            /*
             PromptOpenFileOptions fileOpts = new PromptOpenFileOptions("Wybierz plik tekstowy: ");
             fileOpts.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
             PromptFileNameResult fileResult = ed.GetFileNameForOpen(fileOpts);
@@ -144,6 +279,18 @@ namespace Geo_geo.Class {
             if (string.IsNullOrEmpty(fileName))
                 return;
 
+            fileName = fileResult.StringResult;
+            */
+
+
+            cFileDlg dlg = new cFileDlg();
+            fileName = dlg.OpenDlg();
+
+            if (fileName == "return") {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
+
             // Read the content of the text file
             using (StreamReader sr = new StreamReader(fileName)) {
                 fileContent = sr.ReadToEnd();
@@ -156,7 +303,7 @@ namespace Geo_geo.Class {
             TypedValue[] typedValueArray = new TypedValue[1];
             typedValueArray.SetValue((object)new TypedValue(0, (object)"TEXT"), 0);
 
-            fileName = fileResult.StringResult;
+            
 
 
             PromptSelectionResult selectionResult = ed.GetSelection();
@@ -251,6 +398,7 @@ namespace Geo_geo.Class {
             }
         }
 
+
         public void GetSelectedBlocks() {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -259,11 +407,23 @@ namespace Geo_geo.Class {
 
             string fileName;
 
+            /*
             PromptSaveFileOptions saveOpts = new PromptSaveFileOptions("Wybierz plik do zapisu");
             saveOpts.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
-
             PromptFileNameResult fileResult = ed.GetFileNameForSave(saveOpts);
             if (fileResult.Status != PromptStatus.OK) {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
+
+            fileName = fileResult.StringResult;
+            */
+
+
+            cFileDlg dlg = new cFileDlg();
+            fileName = dlg.SaveDlg();
+
+            if (fileName == "return") {
                 ed.WriteMessage("\nError opening the file or no file selected!");
                 return;
             }
@@ -271,7 +431,7 @@ namespace Geo_geo.Class {
             TypedValue[] typedValueArray = new TypedValue[1];
             typedValueArray.SetValue((object)new TypedValue(0, (object)"TEXT"), 0);
 
-            fileName = fileResult.StringResult;
+            
 
 
             PromptSelectionResult selectionResult = ed.GetSelection();
@@ -344,7 +504,7 @@ namespace Geo_geo.Class {
                                 */
 
                             }
-                            str = str + $"{blockRef.Position.X.ToString()}\t{blockRef.Position.Y.ToString()}\t{blockRef.Position.Z.ToString()}\t";
+                            str = $"{blockRef.Position.X.ToString()}\t{blockRef.Position.Y.ToString()}\t{blockRef.Position.Z.ToString()}\t" + str;
 
                             streamWriter.WriteLine(str);
                             lp++;
@@ -360,6 +520,127 @@ namespace Geo_geo.Class {
                 }
             }
         }
+
+
+        public void GetSelectedBlocksExtend() {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+
+            string fileName;
+
+            /*
+            PromptSaveFileOptions saveOpts = new PromptSaveFileOptions("Wybierz plik do zapisu");
+            saveOpts.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
+            PromptFileNameResult fileResult = ed.GetFileNameForSave(saveOpts);
+            if (fileResult.Status != PromptStatus.OK) {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
+            fileName = fileResult.StringResult;
+            */
+
+            cFileDlg dlg = new cFileDlg();
+            fileName = dlg.SaveDlg();
+
+            if (fileName == "return") {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
+
+            TypedValue[] typedValueArray = new TypedValue[1];
+            typedValueArray.SetValue((object)new TypedValue(0, (object)"TEXT"), 0);
+
+            
+
+
+            PromptSelectionResult selectionResult = ed.GetSelection();
+            if (selectionResult.Status != PromptStatus.OK) {
+                ed.WriteMessage("Nie wybrano elementów.");
+                return;
+            }
+
+            SelectionSet selectionSet = selectionResult.Value;
+
+
+            int lp = 0;
+
+            using (StreamWriter streamWriter = new StreamWriter(fileName)) {
+
+                streamWriter.WriteLine($"ID\tBlockName\tLayer\nY\nX\t");
+
+                foreach (SelectedObject selectedObject in selectionSet) {
+                    using (Transaction trans = db.TransactionManager.StartTransaction()) {
+                        Entity entity = trans.GetObject(selectedObject.ObjectId, OpenMode.ForRead) as Entity;
+                        if (entity == null) {
+                            continue;
+                        }
+
+                        string objType = entity.GetType().Name;
+                        double wspXP = 0.0;
+                        double wspYP = 0.0;
+                        string atr;
+
+                        string id = "";
+
+                        string name = "";
+                        string layer = "";
+
+                        string str = "";
+
+
+                        if (objType == "BlockReference") {
+                            BlockReference blockRef = entity as BlockReference;
+                            wspXP = blockRef.Position.X;
+                            wspYP = blockRef.Position.Y;
+
+                            AttributeCollection attCol = blockRef.AttributeCollection;
+
+
+
+                            foreach (ObjectId attId in attCol) {
+
+                                AttributeReference attRef = (AttributeReference)trans.GetObject(attId, OpenMode.ForRead);
+
+                                //if (attRef.Tag == "ID") { str = (str + attRef.TextString + "\t"); }
+
+                                //str = (str +  attRef.Tag + "\t");
+
+
+                                str = (str + attRef.TextString + "\t");
+                                break;
+
+                                /* Przypisanie wartości pola "Pochodzenie" na podstawie id 
+                                if ((attRef.Tag == "POCHODZENIE") && (id == "E-W33")){
+                                    AttributeReference attWrt = (AttributeReference)trans.GetObject(attId, OpenMode.ForWrite);
+                                    attWrt.TextString = $"var: {id}";
+                                }
+                                */
+
+                            }
+
+                            name = blockRef.Name;
+                            layer = blockRef.Layer.ToString();
+
+                            str = str + $"{name}\t{layer}\t{blockRef.Position.X.ToString()}\t{blockRef.Position.Y.ToString()}\t{blockRef.Position.Z.ToString()}\t";
+
+                            streamWriter.WriteLine(str);
+                            lp++;
+
+                        } else {
+                            continue;
+                        }
+
+                        ed.WriteMessage($"\n{lp}");
+
+                        trans.Commit();
+                    }
+                }
+            }
+        }
+
+
         public void SetSelectedBlocksJust() {
 
             Document doc = Application.DocumentManager.MdiActiveDocument;

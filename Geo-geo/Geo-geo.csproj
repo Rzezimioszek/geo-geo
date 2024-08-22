@@ -54,6 +54,19 @@
     <Reference Include="AcMPolygonMGD">
       <HintPath>C:\Program Files\Autodesk\AutoCAD 2018\AcMPolygonMGD.dll</HintPath>
     </Reference>
+    <Reference Include="GeoAPI, Version=1.7.5.0, Culture=neutral, PublicKeyToken=a1a0da7def465678, processorArchitecture=MSIL">
+      <HintPath>..\packages\GeoAPI.Core.1.7.5\lib\net45\GeoAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="GeoAPI.CoordinateSystems, Version=1.7.5.0, Culture=neutral, PublicKeyToken=a1a0da7def465678, processorArchitecture=MSIL">
+      <HintPath>..\packages\GeoAPI.CoordinateSystems.1.7.5\lib\net45\GeoAPI.CoordinateSystems.dll</HintPath>
+    </Reference>
+    <Reference Include="NetTopologySuite, Version=2.0.0.0, Culture=neutral, PublicKeyToken=f580a05016ebada1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\NetTopologySuite.dll</HintPath>
+    </Reference>
+    <Reference Include="ProjNET, Version=1.4.0.0, Culture=neutral, PublicKeyToken=a1f5bdcd9c6f5740, processorArchitecture=MSIL">
+      <HintPath>..\packages\ProjNET4GeoAPI.1.4.1\lib\net45\ProjNET.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -69,13 +82,26 @@
     <Compile Include="Class\cBlocks.cs" />
     <Compile Include="Class\cBudynki.cs" />
     <Compile Include="Class\cCzolowki.cs" />
+    <Compile Include="Class\cFileDlg.cs" />
+    <Compile Include="Class\cGeneralize.cs" />
     <Compile Include="Class\cImportPik.cs" />
     <Compile Include="Class\cExportPik.cs" />
     <Compile Include="Class\cObrot.cs" />
+    <Compile Include="Class\cOpisyMapy.cs" />
     <Compile Include="Class\cPikietowanie.cs" />
+    <Compile Include="Class\cPointAtSurface.cs" />
+    <Compile Include="Class\cPoligonBoundry.cs" />
     <Compile Include="Class\cRzutowanie.cs" />
+    <Compile Include="Class\cSimple.cs" />
     <Compile Include="Class\cStart.cs" />
     <Compile Include="Class\cTest.cs" />
+    <Compile Include="Class\cWeb.cs" />
+    <Compile Include="Class\FORMS\fEWmapa.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Class\FORMS\fEWmapa.Designer.cs">
+      <DependentUpon>fEWmapa.cs</DependentUpon>
+    </Compile>
     <Compile Include="Class\FORMS\ucBlocks.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -88,27 +114,60 @@
     <Compile Include="Class\FORMS\ucCzolowki.Designer.cs">
       <DependentUpon>ucCzolowki.cs</DependentUpon>
     </Compile>
+    <Compile Include="Class\FORMS\ucDistance.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Class\FORMS\ucDistance.Designer.cs">
+      <DependentUpon>ucDistance.cs</DependentUpon>
+    </Compile>
     <Compile Include="Class\FORMS\ucMain.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Class\FORMS\ucMain.Designer.cs">
       <DependentUpon>ucMain.cs</DependentUpon>
     </Compile>
+    <Compile Include="Class\FORMS\ucMarkery.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Class\FORMS\ucMarkery.Designer.cs">
+      <DependentUpon>ucMarkery.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Class\FORMS\ucSandbox.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Class\FORMS\ucSandbox.Designer.cs">
+      <DependentUpon>ucSandbox.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Class\FORMS\fEWmapa.resx">
+      <DependentUpon>fEWmapa.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Class\FORMS\ucBlocks.resx">
       <DependentUpon>ucBlocks.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Class\FORMS\ucCzolowki.resx">
       <DependentUpon>ucCzolowki.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Class\FORMS\ucDistance.resx">
+      <DependentUpon>ucDistance.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Class\FORMS\ucMain.resx">
       <DependentUpon>ucMain.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Class\FORMS\ucMarkery.resx">
+      <DependentUpon>ucMarkery.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Class\FORMS\ucSandbox.resx">
+      <DependentUpon>ucSandbox.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Class\System\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

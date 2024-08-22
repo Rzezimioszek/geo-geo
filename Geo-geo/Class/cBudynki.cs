@@ -5,10 +5,6 @@ using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Geo_geo.Class {
     internal class cBudynki {
@@ -30,18 +26,13 @@ namespace Geo_geo.Class {
             char sep = ' ';
             long ent_moved = 0;
 
-            PromptOpenFileOptions fileOpts = new PromptOpenFileOptions("Select a text file: ");
-            fileOpts.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
-            PromptFileNameResult fileResult = ed.GetFileNameForOpen(fileOpts);
-            if (fileResult.Status != PromptStatus.OK) {
+            cFileDlg dlg = new cFileDlg();
+            fileName = dlg.OpenDlg();
+
+            if (fileName == "return") {
                 ed.WriteMessage("\nError opening the file or no file selected!");
                 return;
             }
-
-            fileName = fileResult.StringResult;
-
-            if (string.IsNullOrEmpty(fileName))
-                return;
 
             // Read the content of the text file
             using (StreamReader sr = new StreamReader(fileName)) {
@@ -73,15 +64,30 @@ namespace Geo_geo.Class {
 
             for (int i = 0; i < lines.Length; i++) {
 
-                ed.WriteMessage($"\nLoad line: {i}");
+                try {
 
-                while (lines[i].Contains($"{sep}{sep}")) {
-                    lines[i] = lines[i].Replace($"{sep}{sep}", $"{sep}");
+                    if (lines[i] == "") {
+                        continue;
+                    }
+
+                    ed.WriteMessage($"\nLoad line: {i}");
+
+                    if (lines[i].Contains($" ")) {
+
+                        lines[i] = lines[i].Replace($" ", $"{sep}");
+
+                    }
+
+
+                    while (lines[i].Contains($"{sep}{sep}")) {
+                        lines[i] = lines[i].Replace($"{sep}{sep}", $"{sep}");
+                    }
+
+                    lines[i] = lines[i].Replace(",", ".");
+
+                    //points = lines[i].Split(sep);
                 }
-
-                lines[i] = lines[i].Replace(",", ".");
-
-                //points = lines[i].Split(sep);
+                catch { }
 
             }
 
@@ -96,7 +102,13 @@ namespace Geo_geo.Class {
                 int h = 4;
                 int h2 = 5;
 
+                if (lines[i] == "") {
+                    continue;
+                }
+
                 lp++;
+
+
 
                 using (Transaction transModify = db.TransactionManager.StartTransaction()) {
 
@@ -105,6 +117,8 @@ namespace Geo_geo.Class {
                     j = i + 1;
 
                     points = lines[i].Split(sep);
+
+                    //ed.WriteMessage($"\nWALL: {points[nr]}");
 
                     Point3d p0 = new Point3d(double.Parse(points[x]), double.Parse(points[y]), double.Parse(points[h]));
                     Point3d p1 = new Point3d(double.Parse(points[x]), double.Parse(points[y]), double.Parse(points[h2]));
@@ -131,75 +145,148 @@ namespace Geo_geo.Class {
                 }
             }
 
-            double last = 0.0;
+            double last = -1.0;
             Point3dCollection ptr = new Point3dCollection();
+
+            List<string> errors = new List<string>();
+
+
 
             for (int i = 0; i < (lines.Length); i++) {
 
-                int nr = 0;
-                int x = 2;
-                int y = 3;
-                int h = 4;
-                int h2 = 5;
+                string current = "";
 
-
-                points = lines[i].Split(sep);
-
-                if (last == double.Parse(points[nr])) {
-
-                    if (double.Parse(points[h2]) > double.Parse(points[h])){
-
-                        ptr.Add(new Point3d(double.Parse(points[x]), double.Parse(points[y]), double.Parse(points[h2])));
-
-                    } else {
-
-                        ptr.Add(new Point3d(double.Parse(points[x]), double.Parse(points[y]), double.Parse(points[h])));
-
-                    }
-
-                } else if (i == (lines.Length - 1)) {
-
-                    using (Transaction transModify = db.TransactionManager.StartTransaction()) {
-
-                        BlockTableRecord btr = (BlockTableRecord)transModify.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
-
-                        Autodesk.AutoCAD.DatabaseServices.Polyline3d pline3d = new Autodesk.AutoCAD.DatabaseServices.Polyline3d(Poly3dType.SimplePoly, ptr, true);
-                        var curves = new DBObjectCollection();
-                        curves.Add(pline3d);
-
-                        var regions = Region.CreateFromCurves(curves);
-                        var region = (Region)regions[0];
-
-                        btr.AppendEntity(region);
-                        transModify.AddNewlyCreatedDBObject(region, true);
-                        transModify.Commit();
-                    }
-                    ptr = new Point3dCollection();
-
-                } else {
-
-                    using (Transaction transModify = db.TransactionManager.StartTransaction()) {
-
-                        BlockTableRecord btr = (BlockTableRecord)transModify.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
-
-                        Autodesk.AutoCAD.DatabaseServices.Polyline3d pline3d = new Autodesk.AutoCAD.DatabaseServices.Polyline3d(Poly3dType.SimplePoly, ptr, true);
-                        var curves = new DBObjectCollection();
-                        curves.Add(pline3d);
-
-                        var regions = Region.CreateFromCurves(curves);
-                        var region = (Region)regions[0];
-
-                        btr.AppendEntity(region);
-                        transModify.AddNewlyCreatedDBObject(region, true);
-                        transModify.Commit();
-                    }
-                    ptr = new Point3dCollection();
+                if (lines[i] == "") {
+                    continue;
                 }
 
-                last = double.Parse(points[nr]);
+                try {
+
+                    int nr = 0;
+                    int x = 2;
+                    int y = 3;
+                    int h = 4;
+                    int h2 = 5;
+
+
+                    points = lines[i].Split(sep);
+
+                    if (points.Length < 2 ) {
+
+                        using (Transaction transModify = db.TransactionManager.StartTransaction()) {
+
+                            BlockTableRecord btr = (BlockTableRecord)transModify.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+
+                            Autodesk.AutoCAD.DatabaseServices.Polyline3d pline3d = new Autodesk.AutoCAD.DatabaseServices.Polyline3d(Poly3dType.SimplePoly, ptr, true);
+                            var curves = new DBObjectCollection();
+                            curves.Add(pline3d);
+
+                            var regions = Region.CreateFromCurves(curves);
+                            var region = (Region)regions[0];
+
+                            btr.AppendEntity(region);
+                            transModify.AddNewlyCreatedDBObject(region, true);
+                            transModify.Commit();
+                        }
+                        continue; 
+                    }
+
+                    current = points[nr];
+
+                    if (last == -1.0) { last = double.Parse(points[nr]); }
+
+                    //ed.WriteMessage($"\nROOF: {points[nr]}");
+
+                    if (last == double.Parse(points[nr])) {
+
+                        if (double.Parse(points[h2]) > double.Parse(points[h])) {
+
+                            ptr.Add(new Point3d(double.Parse(points[x]), double.Parse(points[y]), double.Parse(points[h2])));
+
+                        } else {
+
+                            ptr.Add(new Point3d(double.Parse(points[x]), double.Parse(points[y]), double.Parse(points[h])));
+
+                        }
+
+                        if (i == (lines.Length - 1)) {
+
+
+                            using (Transaction transModify = db.TransactionManager.StartTransaction()) {
+
+                                BlockTableRecord btr = (BlockTableRecord)transModify.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+
+                                Autodesk.AutoCAD.DatabaseServices.Polyline3d pline3d = new Autodesk.AutoCAD.DatabaseServices.Polyline3d(Poly3dType.SimplePoly, ptr, true);
+                                var curves = new DBObjectCollection();
+                                curves.Add(pline3d);
+
+                                var regions = Region.CreateFromCurves(curves);
+                                var region = (Region)regions[0];
+
+                                btr.AppendEntity(region);
+                                transModify.AddNewlyCreatedDBObject(region, true);
+                                transModify.Commit();
+                            }
+                            ptr = new Point3dCollection();
+
+                        }
+
+                    }  else {
+
+                        using (Transaction transModify = db.TransactionManager.StartTransaction()) {
+
+                            BlockTableRecord btr = (BlockTableRecord)transModify.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+
+                            Autodesk.AutoCAD.DatabaseServices.Polyline3d pline3d = new Autodesk.AutoCAD.DatabaseServices.Polyline3d(Poly3dType.SimplePoly, ptr, true);
+                            var curves = new DBObjectCollection();
+                            curves.Add(pline3d);
+
+                            var regions = Region.CreateFromCurves(curves);
+                            var region = (Region)regions[0];
+
+                            btr.AppendEntity(region);
+                            transModify.AddNewlyCreatedDBObject(region, true);
+                            transModify.Commit();
+                        }
+                        ptr = new Point3dCollection();
+
+                        if (double.Parse(points[h2]) > double.Parse(points[h])) {
+
+                            ptr.Add(new Point3d(double.Parse(points[x]), double.Parse(points[y]), double.Parse(points[h2])));
+
+                        } else {
+
+                            ptr.Add(new Point3d(double.Parse(points[x]), double.Parse(points[y]), double.Parse(points[h])));
+
+                        }
+                    }
+
+                    last = double.Parse(points[nr]);
+
+                } catch (Exception ex) {
+
+                    errors.Add(current);
+
+
+
+                    ed.WriteMessage($"\n{ex.Message} ");
+
+                }
             }
 
-            ed.WriteMessage($"Added {lp} buildings");
+            if (errors.Count > 0) {
+                ed.WriteMessage($"\nBudynki z błędną geometrią:\n");
+
+                foreach (string err in errors) {
+                    ed.WriteMessage($"{err}; ");
+                }
+            }
+
+
+
+
+
+            ed.WriteMessage($"\nAdded {lp} buildings");
         }
     }
 }

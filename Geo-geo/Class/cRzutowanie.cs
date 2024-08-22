@@ -6,9 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Windows.Forms.LinkLabel;
 
 namespace Geo_geo.Class {
     internal class cRzutowanie {
@@ -146,14 +143,13 @@ namespace Geo_geo.Class {
 
                                         HX = ((Math.Abs((wspZ1 - wspZ0)) * d0P) / d01);
 
-                                        
+
 
                                         if (wspZ1 > wspZ0) {
 
                                             newPointZ = wspZ0 + HX;
 
-                                        }
-                                        else {
+                                        } else {
 
                                             newPointZ = wspZ0 - HX;
 
@@ -291,7 +287,7 @@ namespace Geo_geo.Class {
 
                                 //Polyline
                                 pline3d = lineEntity as Autodesk.AutoCAD.DatabaseServices.Polyline3d;
-                                
+
                                 int counter_of_vertex = 0;
 
                                 List<double> wspX = new List<double>();
@@ -456,7 +452,7 @@ namespace Geo_geo.Class {
             SelectionSet selectionSet = selectionResult.Value;
             int liczba_porzadkowa = 0;
 
-
+            /*
             PromptOpenFileOptions fileOpts = new PromptOpenFileOptions("Select a text file: ");
             fileOpts.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
             PromptFileNameResult fileResult = ed.GetFileNameForOpen(fileOpts);
@@ -464,11 +460,18 @@ namespace Geo_geo.Class {
                 ed.WriteMessage("\nError opening the file or no file selected!");
                 return;
             }
-
             fileName = fileResult.StringResult;
-
             if (string.IsNullOrEmpty(fileName))
                 return;
+            */
+
+            cFileDlg dlg = new cFileDlg();
+            fileName = dlg.OpenDlg();
+
+            if (fileName == "return") {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
 
             // Read the content of the text file
             using (StreamReader sr = new StreamReader(fileName)) {
@@ -510,7 +513,7 @@ namespace Geo_geo.Class {
                 //points = lines[i].Split(sep);
             }
 
-                foreach (SelectedObject selectedObject in selectionSet) {
+            foreach (SelectedObject selectedObject in selectionSet) {
                 using (Transaction trans = db.TransactionManager.StartTransaction()) {
 
                     Entity entity = trans.GetObject(selectedObject.ObjectId, OpenMode.ForRead) as Entity;
@@ -573,9 +576,9 @@ namespace Geo_geo.Class {
 
                                 using (Transaction transModify = db.TransactionManager.StartTransaction()) {
 
-                                        line.UpgradeOpen();
-                                        line.StartPoint = newPoint;
-                                        transModify.Commit();
+                                    line.UpgradeOpen();
+                                    line.StartPoint = newPoint;
+                                    transModify.Commit();
                                 }
                                 ent_moved++;
                                 ed.WriteMessage("\nLine object moved");
@@ -588,7 +591,7 @@ namespace Geo_geo.Class {
 
                                 using (Transaction transModify = db.TransactionManager.StartTransaction()) {
 
-                                    line.UpgradeOpen();  
+                                    line.UpgradeOpen();
                                     line.EndPoint = newPoint;
                                     transModify.Commit();
                                 }
@@ -631,8 +634,8 @@ namespace Geo_geo.Class {
 
                                     Point3d newPoint = new Point3d(wspX0, wspY0, wspZP);
 
-                                    if (IsOnLine(wspX0,wspY0,wspXP, wspYP, prec)) {
-                                        
+                                    if (IsOnLine(wspX0, wspY0, wspXP, wspYP, prec)) {
+
                                         using (Transaction transModify = db.TransactionManager.StartTransaction()) {
 
                                             //pline3d.UpgradeOpen();
@@ -647,7 +650,7 @@ namespace Geo_geo.Class {
                                         ed.WriteMessage("\nPolyline3D object moved");
                                     }
                                 }
-                            } 
+                            }
                         }
 
                     } else {
@@ -660,6 +663,181 @@ namespace Geo_geo.Class {
 
                 }
             }
+        }
+
+        public void PlaceBlockOnVertex(double prec = 0.0100) {
+
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            bool on_line = false;
+
+            PromptSelectionResult selection = ed.GetSelection();
+            if (selection.Status != PromptStatus.OK)
+                return;
+
+            int liczba_porzadkowa = 0;
+
+            cObrot cO = new cObrot();
+
+            List<ObjectId> line_ids = new List<ObjectId>();
+            List<ObjectId> blocks_ids = new List<ObjectId>();
+
+            line_ids = cO.GetIds(selection, "line3d");
+            blocks_ids = cO.GetIds(selection, "block");
+
+            foreach (ObjectId line_id in line_ids) {
+                using (Transaction trans = db.TransactionManager.StartTransaction()) {
+                    Entity lineEntity = trans.GetObject(line_id, OpenMode.ForRead) as Entity;
+                    if (lineEntity == null) {
+                        continue;
+                    }
+
+
+                    Line line = new Line();
+                    Autodesk.AutoCAD.DatabaseServices.Polyline pline = new Autodesk.AutoCAD.DatabaseServices.Polyline();
+                    Autodesk.AutoCAD.DatabaseServices.Polyline3d pline3d = new Autodesk.AutoCAD.DatabaseServices.Polyline3d();
+                    Autodesk.AutoCAD.DatabaseServices.Polyline2d pline2d = new Autodesk.AutoCAD.DatabaseServices.Polyline2d();
+
+                    double wspX = 0.0;
+                    double wspY = 0.0;
+                    double wspH = 0.0;
+
+                    double deltaX01 = 0.0;
+                    double deltaY01 = 0.0;
+
+
+                    if (lineEntity == null) { continue; }
+
+                    if (lineEntity.GetType().Name == "Line") {
+
+                        line = lineEntity as Line;
+
+                        Point3d startPoint = new Point3d(line.StartPoint.X, line.StartPoint.Y, line.StartPoint.Z);
+                        Point3d endPoint = new Point3d(line.EndPoint.X, line.EndPoint.Y, line.EndPoint.Z);
+
+
+                        for (int i = 0; i < blocks_ids.Count; i++) {
+
+                            Entity entity = trans.GetObject(blocks_ids[i], OpenMode.ForRead) as Entity;
+                            string objType = entity.GetType().Name;
+
+
+                            if (objType == "BlockReference") {
+                                BlockReference blockRef = entity as BlockReference;
+                                wspX = blockRef.Position.X;
+                                wspY = blockRef.Position.Y;
+                                wspH = blockRef.Position.Z;
+                            } else {
+                                continue;
+                            }
+
+                            Point3d vPoint = new Point3d(wspX, wspY, wspH);
+
+                            if (cO.InBox(startPoint, startPoint, vPoint, prec)) {
+
+                                MoveBlock(db, doc, entity, startPoint);
+                                blocks_ids.RemoveAt(i);
+                                i--;
+                                liczba_porzadkowa++;
+
+                            }
+                            else if (cO.InBox(endPoint, endPoint, vPoint, prec)) {
+
+                                MoveBlock(db, doc, entity, endPoint);
+                                blocks_ids.RemoveAt(i);
+                                i--;
+                                liczba_porzadkowa++;
+
+                            }
+
+                        }
+
+                    } else if (lineEntity.GetType().Name == "Polyline3d") {
+
+                        pline3d = lineEntity as Autodesk.AutoCAD.DatabaseServices.Polyline3d;
+
+                        int counter_of_vertex = 0;
+
+                        List<double> wspXX = new List<double>();
+                        List<double> wspYY = new List<double>();
+                        List<double> wspZZ = new List<double>();
+
+                        if (pline3d != null) {
+
+                            foreach (ObjectId vId in pline3d) {
+
+                                PolylineVertex3d v3d = (PolylineVertex3d)trans.GetObject(vId, OpenMode.ForRead);
+                                counter_of_vertex++;
+
+                                wspXX.Add(v3d.Position.X);
+                                wspYY.Add(v3d.Position.Y);
+                                wspZZ.Add(v3d.Position.Z);
+
+                            }
+
+                            for (int jk = 0; jk < (counter_of_vertex - 1); jk++) {
+
+
+
+                                double wspX0 = Math.Round(wspXX[jk], 3);
+                                double wspY0 = Math.Round(wspYY[jk], 3);
+                                double wspZ0 = Math.Round(wspZZ[jk], 3);
+
+                                double wspX1 = Math.Round(wspXX[jk + 1], 3);
+                                double wspY1 = Math.Round(wspYY[jk + 1], 3);
+                                double wspZ1 = Math.Round(wspZZ[jk + 1], 3);
+
+                                Point3d startPoint = new Point3d(wspX0, wspY0, wspZ0);
+                                Point3d endPoint = new Point3d(wspX1, wspY1, wspZ1);
+
+                                for (int i = 0; i < blocks_ids.Count; i++) {
+
+                                    Entity entity = trans.GetObject(blocks_ids[i], OpenMode.ForRead) as Entity;
+                                    string objType = entity.GetType().Name;
+
+
+                                    if (objType == "BlockReference") {
+                                        BlockReference blockRef = entity as BlockReference;
+                                        wspX = blockRef.Position.X;
+                                        wspY = blockRef.Position.Y;
+                                        wspH = blockRef.Position.Z;
+                                    } else {
+                                        continue;
+                                    }
+
+                                    Point3d vPoint = new Point3d(wspX, wspY, wspH);
+
+                                    if (cO.InBox(startPoint, startPoint, vPoint, prec)) {
+
+                                        MoveBlock(db, doc, entity, startPoint);
+                                        blocks_ids.RemoveAt(i);
+                                        i--;
+                                        liczba_porzadkowa++;
+
+                                    } else if (cO.InBox(endPoint, endPoint, vPoint, prec)) {
+
+                                        MoveBlock(db, doc, entity, endPoint);
+                                        blocks_ids.RemoveAt(i);
+                                        i--;
+                                        liczba_porzadkowa++;
+
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        continue;
+                    }
+
+
+                    trans.Commit();
+                }
+            }
+
+
+
         }
 
         private bool IsOnLine(double wspX0, double wspY0, double wspX1, double wspY1, double prec) {
@@ -709,6 +887,24 @@ namespace Geo_geo.Class {
             }
 
             return angle;
+        }
+
+        private void MoveBlock(Database db, Document doc, Entity entity, Point3d vPoint) {
+
+            using (Transaction transModify = db.TransactionManager.StartTransaction()) {
+                BlockReference blockRef = entity as BlockReference;
+                blockRef.UpgradeOpen();
+
+                Matrix3d curUCSMatrix = doc.Editor.CurrentUserCoordinateSystem;
+                CoordinateSystem3d curUCS = curUCSMatrix.CoordinateSystem3d;
+
+                //blockRef.ScaleFactors = new Scale3d(1, 1, 0.00001);
+                blockRef.Position = vPoint;
+                transModify.Commit();
+
+            }
+
+
         }
     }
 }

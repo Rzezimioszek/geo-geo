@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -65,6 +66,7 @@ namespace Geo_geo.Class {
                 return;
             skala = scaleResult.Value;
 
+            /*
             PromptOpenFileOptions fileOpts = new PromptOpenFileOptions("Select a text file: ");
             fileOpts.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
             PromptFileNameResult fileResult = ed.GetFileNameForOpen(fileOpts);
@@ -72,11 +74,20 @@ namespace Geo_geo.Class {
                 ed.WriteMessage("\nError opening the file or no file selected!");
                 return;
             }
-
             fileName = fileResult.StringResult;
 
             if (string.IsNullOrEmpty(fileName))
                 return;
+            */
+
+            cFileDlg dlg = new cFileDlg();
+            fileName = dlg.OpenDlg();
+
+            if (fileName == "return") {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
+
 
             // Read the content of the text file
             using (StreamReader sr = new StreamReader(fileName)) {
@@ -90,8 +101,7 @@ namespace Geo_geo.Class {
             for (i = 0; i < lines.Length; i++) {
                 // Replace multiple spaces with a single space
 
-                while (lines[i].Contains("  ")) 
-                {
+                while (lines[i].Contains("  ")) {
                     lines[i] = lines[i].Replace("  ", " ");
                 }
 
@@ -106,49 +116,49 @@ namespace Geo_geo.Class {
                 int y = 2;
                 int h = 3;
 
-            if (pts_format == "NYxh") {
-                nr = 0;
-                x = 1;
-                y = 2;
-                h = 3;
-            } else if (pts_format == "NXyh") {
-                nr = 0;
-                x = 2;
-                y = 1;
-                h = 3;
-            } else if (pts_format == "Xyh") {
-                nr = 2;
-                x = 0;
-                y = 1;
-                h = 2;
-            } else if (pts_format == "Yxh") {
-                nr = 2;
-                x = 1;
-                y = 0;
-                h = 2;
-            }
-
-            /*
-            if (Import.CheckBox1) {
-                nr = h;
-            }
-            */
-
-            try {
-                
-                if (points.Length > 2) {
-                    origin[0] = double.Parse(points[x]);
-                    origin[1] = double.Parse(points[y]);
-                    origin[2] = double.Parse(points[h]);
-                } else if (h == nr) {
-                    origin[0] = double.Parse(points[x]);
-                    origin[1] = double.Parse(points[y]);
-                    origin[2] = double.Parse(points[h]);
-                } else {
-                    origin[0] = double.Parse(points[x]);
-                    origin[1] = double.Parse(points[y]);
-                    origin[2] = 0.0;
+                if (pts_format == "NYxh") {
+                    nr = 0;
+                    x = 1;
+                    y = 2;
+                    h = 3;
+                } else if (pts_format == "NXyh") {
+                    nr = 0;
+                    x = 2;
+                    y = 1;
+                    h = 3;
+                } else if (pts_format == "Xyh") {
+                    nr = 2;
+                    x = 0;
+                    y = 1;
+                    h = 2;
+                } else if (pts_format == "Yxh") {
+                    nr = 2;
+                    x = 1;
+                    y = 0;
+                    h = 2;
                 }
+
+                /*
+                if (Import.CheckBox1) {
+                    nr = h;
+                }
+                */
+
+                try {
+
+                    if (points.Length > 2) {
+                        origin[0] = double.Parse(points[x]);
+                        origin[1] = double.Parse(points[y]);
+                        origin[2] = double.Parse(points[h]);
+                    } else if (h == nr) {
+                        origin[0] = double.Parse(points[x]);
+                        origin[1] = double.Parse(points[y]);
+                        origin[2] = double.Parse(points[h]);
+                    } else {
+                        origin[0] = double.Parse(points[x]);
+                        origin[1] = double.Parse(points[y]);
+                        origin[2] = 0.0;
+                    }
 
                     if (pts_type == "Tekst") {
                         DBText text = new DBText();
@@ -185,12 +195,12 @@ namespace Geo_geo.Class {
                         continue;
                     }
 
-                j++;
-            } catch (System.Exception ex) {
-                continue;
-                ed.WriteMessage("\nError: " + ex.Message);
+                    j++;
+                } catch (System.Exception ex) {
+                    continue;
+                    ed.WriteMessage("\nError: " + ex.Message);
 
-            }
+                }
             }
 
             ed.WriteMessage($"\nLoaded: {j} points");
@@ -207,7 +217,7 @@ namespace Geo_geo.Class {
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
-       
+
 
             ed.WriteMessage($"\nTyp: {pts_type}");
             ed.WriteMessage($"\nFormat: {pts_format}");
@@ -223,8 +233,8 @@ namespace Geo_geo.Class {
             double height = 0.0;
             bool temp_h0 = false;
 
-            
 
+            /*
             PromptOpenFileOptions fileOpts = new PromptOpenFileOptions("Select a text file: ");
             fileOpts.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
             PromptFileNameResult fileResult = ed.GetFileNameForOpen(fileOpts);
@@ -232,8 +242,17 @@ namespace Geo_geo.Class {
                 ed.WriteMessage("\nError opening the file or no file selected!");
                 return;
             }
-
             fileName = fileResult.StringResult;
+            */
+
+            cFileDlg dlg = new cFileDlg();
+            fileName = dlg.OpenDlg();
+
+            if (fileName == "return") {
+                ed.WriteMessage("\nError opening the file or no file selected!");
+                return;
+            }
+
 
             if (string.IsNullOrEmpty(fileName))
                 return;
@@ -338,7 +357,7 @@ namespace Geo_geo.Class {
                     if (NrH) {
                         nr = h;
                     }
-                    
+
 
                     try {
 
@@ -371,7 +390,7 @@ namespace Geo_geo.Class {
 
                         }
 
-                        
+
 
                         if (h0) {
                             temp_h0 = h0;
@@ -427,7 +446,7 @@ namespace Geo_geo.Class {
 
                             ed.WriteMessage($"\nlenght: {points.Length}");
 
-                            if (points.Length >= jj ) {
+                            if (points.Length >= jj) {
 
                                 for (int jp = jj; jp < points.Length; jp++) {
                                     atr.Add($"{points[jp]}");
@@ -521,7 +540,7 @@ namespace Geo_geo.Class {
                             Circle acCirc = new Circle();
                             acCirc.Center = new Point3d(origin[0], origin[1], origin[2]);
                             acCirc.Radius = skala;
- 
+
 
                             using (Transaction tr = db.TransactionManager.StartTransaction()) {
                                 BlockTableRecord btr = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
@@ -552,7 +571,7 @@ namespace Geo_geo.Class {
 
         }
 
-        public void AddBlock(Point3d point,List <string> atr, string blockName = "pikieta_test") {
+        public void AddBlock(Point3d point, List<string> atr, string blockName = "pikieta_test") {
 
             Database db = Application.DocumentManager.MdiActiveDocument.Database;
 
@@ -605,7 +624,7 @@ namespace Geo_geo.Class {
                                 lp++;
                                 */
 
-                                
+
                                 if (lp < atr.Count) {
 
                                     if (attRef.Tag == "ID") {
@@ -613,7 +632,7 @@ namespace Geo_geo.Class {
                                     } else {
                                         attRef.TextString = atr[lp];
                                     }
-                                    
+
                                 } else {
                                     attRef.TextString = "";
                                 }
@@ -647,6 +666,115 @@ namespace Geo_geo.Class {
             }
 
         }
+
+
+        public void PinBlockExist(string blockName = "PIN (2D)") {
+
+            Database db = Application.DocumentManager.MdiActiveDocument.Database;
+
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+
+            try {
+                using (Transaction myT = db.TransactionManager.StartTransaction()) {
+
+                    BlockTable bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
+
+                    BlockTableRecord blockDef = bt[blockName].GetObject(OpenMode.ForRead) as BlockTableRecord;
+
+                    ed.WriteMessage($"{blockDef}");
+
+
+                }
+            }
+            catch (Exception ex) {
+
+                ed.WriteMessage($"{ex.Message}");
+
+                DocumentCollection dm = Application.DocumentManager;
+
+                Database destDb = dm.MdiActiveDocument.Database;
+
+                Database sourceDb = new Database(false, true);
+                string sourceFileName;
+
+                string name = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                sourceFileName = $"{name}\\pin.dwg";
+
+                sourceDb.ReadDwgFile(sourceFileName, System.IO.FileShare.Read, true, "");
+
+                ObjectIdCollection blockIds = new ObjectIdCollection();
+
+                Autodesk.AutoCAD.DatabaseServices.TransactionManager tm = sourceDb.TransactionManager;
+
+                using (Transaction myT = tm.StartTransaction()) {
+
+
+                    BlockTable bt =
+
+                        (BlockTable)tm.GetObject(sourceDb.BlockTableId,
+
+                                                OpenMode.ForRead,
+
+                                                false);
+
+
+                    // Check each block in the block table
+
+
+                    foreach (ObjectId btrId in bt) {
+
+                        BlockTableRecord btr =
+
+                          (BlockTableRecord)tm.GetObject(btrId,
+
+                                                        OpenMode.ForRead,
+
+                                                        false);
+
+                        // Only add named & non-layout blocks to the copy list
+
+                        if (!btr.IsAnonymous && !btr.IsLayout)
+
+                            blockIds.Add(btrId);
+
+                        btr.Dispose();
+
+                    }
+
+                }
+
+                // Copy blocks from source to destination database
+
+                IdMapping mapping = new IdMapping();
+
+                sourceDb.WblockCloneObjects(blockIds,
+
+                                            destDb.BlockTableId,
+
+                                            mapping,
+
+                                            DuplicateRecordCloning.Replace,
+
+                                            false);
+
+                ed.WriteMessage("\nCopied "
+
+                                + blockIds.Count.ToString()
+
+                                + " block definitions from "
+
+                                + sourceFileName
+
+                                + " to the current drawing.");
+
+                sourceDb.Dispose();
+
+            }
+
+
+        }
+
+        
         public void ImportBlocks() {
 
             DocumentCollection dm = Application.DocumentManager;
@@ -663,7 +791,10 @@ namespace Geo_geo.Class {
 
                 // Get name of DWG from which to copy blocks
 
-                sourceFileName = "Z:\\Programy\\MAKRA\\geogeo\\bloki.dwg";
+                string name = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                sourceFileName = $"{name}\\bloki.dwg";
+
+                //sourceFileName = "Z:\\Programy\\MAKRA\\geogeo\\bloki.dwg";
 
                 // Read the DWG into a side database
 

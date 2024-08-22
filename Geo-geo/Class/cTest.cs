@@ -3,6 +3,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Internal;
+using Geo_geo.Class.FORMS;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -12,9 +13,25 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Windows.Forms.LinkLabel;
+using static System.Windows.Forms.DialogResult;
 
 namespace Geo_geo.Class {
     internal class cTest {
+
+        public string CustomDialog() {
+
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            fEWmapa frm = new fEWmapa();
+
+            if (frm.ShowDialog() == System.Windows.Forms.DialogResult.OK) {
+                ed.WriteMessage($"\n{frm.ReturnValue}");
+                return frm.ReturnValue;
+            }
+            return "ORTN";
+        }
         public void Create3DMesh() {
 
             // Get the current document and database, and start a transaction

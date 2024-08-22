@@ -78,7 +78,7 @@ namespace Geo_geo.Class {
 
                                 DBText text0 = new DBText();
                                 DBText text1 = new DBText();
-                                
+
 
                                 using (Transaction tr = db.TransactionManager.StartTransaction()) {
                                     BlockTableRecord btr = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
@@ -228,6 +228,33 @@ namespace Geo_geo.Class {
 
                                     }
                                 }
+                            } else if (lineEntity.GetType().Name == "Circle") {
+                                Circle acCirc = lineEntity as Circle;
+
+                                Point3d vPoint = acCirc.Center;
+                                compare_value = $"{Math.Round(vPoint.X, 2)}{Math.Round(vPoint.Y, 2)}{Math.Round(vPoint.Z, 2)}";
+
+                                if (in_dwg.Contains(compare_value)) {
+                                } else {
+                                    lp++;
+                                    DBText text = new DBText();
+                                    text.TextString = $"{prefix}{lp.ToString()}{sufix}";
+                                    text.Position = vPoint;
+                                    text.Height = textH;
+                                    text.AdjustAlignment(db);
+                                    in_dwg.Add(compare_value);
+
+                                    using (Transaction tr = db.TransactionManager.StartTransaction()) {
+                                        BlockTableRecord btr = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+                                        btr.AppendEntity(text);
+                                        tr.AddNewlyCreatedDBObject(text, true);
+                                        tr.Commit();
+                                        ed.WriteMessage($"\nVertex {lp} on Cricle");
+                                    }
+                                }
+
+
+
                             } else {
                                 ed.WriteMessage($"\nWrong object: {lineEntity.GetType().Name}\n");
 

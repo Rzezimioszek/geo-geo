@@ -1,17 +1,10 @@
-﻿using System;
+﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Geometry;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Autodesk.AutoCAD.Runtime;
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Windows;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Geometry;
-using System.Net;
-using Autodesk.AutoCAD.GraphicsInterface;
 
 namespace Geo_geo.Class {
     public class cObrot {
@@ -216,7 +209,7 @@ namespace Geo_geo.Class {
 
                                     d0P = Math.Sqrt((deltaX0 * deltaX0) + (deltaY0 * deltaY0));
 
-                                    if (deltaX01 == 0 && deltaY01 == 0){
+                                    if (deltaX01 == 0 && deltaY01 == 0) {
 
                                         angle = 0;
 
@@ -281,7 +274,7 @@ namespace Geo_geo.Class {
 
                             } else if (lineEntity.GetType().Name == "Polyline3d") {
 
-                                
+
 
                                 //Polyline
                                 pline3d = lineEntity as Autodesk.AutoCAD.DatabaseServices.Polyline3d;
@@ -843,6 +836,583 @@ namespace Geo_geo.Class {
             }
         }
 
+
+        public void RotateTextToLine3() {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            double prec = 0.05;
+            bool on_line = false;
+
+            PromptSelectionResult selectionResult = ed.GetSelection();
+            if (selectionResult.Status != PromptStatus.OK) {
+                ed.WriteMessage("Nie wybrano elementów.");
+                return;
+            }
+
+            List<ObjectId> line_ids = new List<ObjectId>();
+            List<ObjectId> text_ids = new List<ObjectId>();
+
+            line_ids = GetIds(selectionResult, "line");
+            text_ids = GetIds(selectionResult, "text");
+
+
+            SelectionSet selectionSet = selectionResult.Value;
+            int liczba_porzadkowa = 0;
+
+            double wspXP = 0.0;
+            double wspYP = 0.0;
+            double orignal_rotation = 0;
+
+            foreach (ObjectId line_id in line_ids) {
+                using (Transaction trans = db.TransactionManager.StartTransaction()) {
+                    Entity lineEntity = trans.GetObject(line_id, OpenMode.ForRead) as Entity;
+                    if (lineEntity == null) {
+                        continue;
+                    }
+
+                    //ed.WriteMessage(lineEntity.GetType().Name + $"\n");
+
+                    Line line = new Line();
+                    Autodesk.AutoCAD.DatabaseServices.Polyline pline = new Autodesk.AutoCAD.DatabaseServices.Polyline();
+                    Autodesk.AutoCAD.DatabaseServices.Polyline3d pline3d = new Autodesk.AutoCAD.DatabaseServices.Polyline3d();
+                    Autodesk.AutoCAD.DatabaseServices.Polyline2d pline2d = new Autodesk.AutoCAD.DatabaseServices.Polyline2d();
+
+                    double angle = 0.0;
+
+                    double wspX0 = 0.0;
+                    double wspY0 = 0.0;
+                    double wspX1 = 0.0;
+                    double wspY1 = 0.0;
+
+                    double deltaX01 = 0.0;
+                    double deltaY01 = 0.0;
+
+
+                    if (lineEntity == null) { continue; }
+
+                    if (lineEntity.GetType().Name == "Line") {
+
+                        line = lineEntity as Line;
+                        angle = line.Angle;
+
+                        Point3d startPoint = new Point3d(line.StartPoint.X, line.StartPoint.Y, 0.0);
+                        Point3d endPoint = new Point3d(line.EndPoint.X, line.EndPoint.Y, 0.0);
+                        Line dummy = new Line(startPoint, endPoint);
+
+                        for (int i = 0; i < text_ids.Count; i++) {
+
+                            Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
+                            string objType = entity.GetType().Name;
+
+
+                            if (objType == "BlockReference") {
+                                BlockReference blockRef = entity as BlockReference;
+                                wspXP = blockRef.Position.X;
+                                wspYP = blockRef.Position.Y;
+                                orignal_rotation = blockRef.Rotation;
+                            } else if (objType == "DBText") {
+                                DBText textObj = entity as DBText;
+                                wspXP = textObj.Position.X;
+                                wspYP = textObj.Position.Y;
+                                orignal_rotation = textObj.Rotation;
+                            } else if (objType == "MText") {
+                                MText textMObj = entity as MText;
+                                wspXP = textMObj.Location.X;
+                                wspYP = textMObj.Location.Y;
+                                orignal_rotation = textMObj.Rotation;
+                            } else {
+                                continue;
+                            }
+                            //ed.WriteMessage(objType + $"\n");
+
+                            Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
+                            if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
+
+                            Point3d vec = new Point3d(dummy.GetClosestPointTo(objPts, true).X, dummy.GetClosestPointTo(objPts, true).Y, 0.0);
+                            on_line = vec.DistanceTo(objPts) < prec;
+
+                            if (on_line && (orignal_rotation == 0)) {
+                                angle = ValidAngle(angle);
+
+
+                                InserRotation(db, doc, entity, objType, angle);
+
+                                text_ids.RemoveAt(i);
+
+                                i--;
+
+                                liczba_porzadkowa++;
+                                //ed.WriteMessage($"{liczba_porzadkowa} {entity.GetType().Name} -> {lineEntity.GetType().Name}");
+                            }
+                        }
+
+                    } else if (lineEntity.GetType().Name == "Polyline") {
+
+                        pline = lineEntity as Autodesk.AutoCAD.DatabaseServices.Polyline;
+
+                        for (int jk = 0; jk < (pline.NumberOfVertices - 1); jk++) {
+
+                            wspX0 = Math.Round(pline.GetPoint2dAt(jk).X, 3);
+                            wspY0 = Math.Round(pline.GetPoint2dAt(jk).Y, 3);
+                            wspX1 = Math.Round(pline.GetPoint2dAt(jk + 1).X, 3);
+                            wspY1 = Math.Round(pline.GetPoint2dAt(jk + 1).Y, 3);
+
+                            deltaX01 = wspX1 - wspX0;
+                            deltaY01 = wspY1 - wspY0;
+
+                            if (deltaX01 == 0 && deltaY01 == 0) {
+
+                                angle = 0;
+
+                            } else {
+                                angle = Math.Atan2(deltaY01, deltaX01);
+                            }
+
+                            Point3d startPoint = new Point3d(wspX0, wspY0, 0.0);
+                            Point3d endPoint = new Point3d(wspX1, wspY1, 0.0);
+                            Line dummy = new Line(startPoint, endPoint);
+
+
+                            for (int i = 0; i < text_ids.Count; i++) {
+
+                                Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
+                                string objType = entity.GetType().Name;
+
+                                if (objType == "BlockReference") {
+                                    BlockReference blockRef = entity as BlockReference;
+                                    wspXP = blockRef.Position.X;
+                                    wspYP = blockRef.Position.Y;
+                                    orignal_rotation = blockRef.Rotation;
+                                } else if (objType == "DBText") {
+                                    DBText textObj = entity as DBText;
+                                    wspXP = textObj.Position.X;
+                                    wspYP = textObj.Position.Y;
+                                    orignal_rotation = textObj.Rotation;
+                                } else if (objType == "MText") {
+                                    MText textMObj = entity as MText;
+                                    wspXP = textMObj.Location.X;
+                                    wspYP = textMObj.Location.Y;
+                                    orignal_rotation = textMObj.Rotation;
+                                } else {
+                                    continue;
+                                }
+                                //ed.WriteMessage(objType + $"\n");
+
+
+                                Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
+
+                                //if (endPoint == objPts) { continue; }
+
+                                if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
+
+                                Point3d vec = new Point3d(dummy.GetClosestPointTo(objPts, true).X, dummy.GetClosestPointTo(objPts, true).Y, 0.0);
+                                on_line = vec.DistanceTo(objPts) < prec;
+
+                                if (on_line && (orignal_rotation == 0)) {
+
+                                    angle = ValidAngle(angle);
+
+                                    InserRotation(db, doc, entity, objType, angle);
+
+                                    text_ids.RemoveAt(i);
+                                    i--;
+
+                                    liczba_porzadkowa++;
+                                }
+
+                            }
+                        }
+                    } else if (lineEntity.GetType().Name == "Polyline3d") {
+
+
+
+                        //Polyline
+                        pline3d = lineEntity as Autodesk.AutoCAD.DatabaseServices.Polyline3d;
+
+
+                        int counter_of_vertex = 0;
+
+                        List<double> wspX = new List<double>();
+                        List<double> wspY = new List<double>();
+                        List<double> wspZ = new List<double>();
+
+                        if (pline3d != null) {
+
+                            foreach (ObjectId vId in pline3d) {
+
+                                PolylineVertex3d v3d = (PolylineVertex3d)trans.GetObject(vId, OpenMode.ForRead);
+                                counter_of_vertex++;
+
+                                wspX.Add(v3d.Position.X);
+                                wspY.Add(v3d.Position.Y);
+                                wspZ.Add(v3d.Position.Z);
+
+                            }
+
+                            for (int jk = 0; jk < (counter_of_vertex - 1); jk++) {
+
+                                wspX0 = Math.Round(wspX[jk], 3);
+                                wspY0 = Math.Round(wspY[jk], 3);
+                                //wspZ0 = Math.Round(wspZ[jk], 3);
+
+                                wspX1 = Math.Round(wspX[jk + 1], 3);
+                                wspY1 = Math.Round(wspY[jk + 1], 3);
+                                //wspZ1 = Math.Round(wspZ[jk + 1], 3);
+
+                                deltaX01 = wspX1 - wspX0;
+                                deltaY01 = wspY1 - wspY0;
+
+                                if (deltaX01 == 0 && deltaY01 == 0) {
+
+                                    angle = 0;
+
+                                } else {
+                                    angle = Math.Atan2(deltaY01, deltaX01);
+                                }
+
+                                Point3d startPoint = new Point3d(wspX0, wspY0, 0.0);
+                                Point3d endPoint = new Point3d(wspX1, wspY1, 0.0);
+                                Line dummy = new Line(startPoint, endPoint);
+
+                                for (int i = 0; i < text_ids.Count; i++) {
+
+                                    Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
+                                    string objType = entity.GetType().Name;
+
+                                    if (objType == "BlockReference") {
+                                        BlockReference blockRef = entity as BlockReference;
+                                        wspXP = blockRef.Position.X;
+                                        wspYP = blockRef.Position.Y;
+                                        orignal_rotation = blockRef.Rotation;
+                                    } else if (objType == "DBText") {
+                                        DBText textObj = entity as DBText;
+                                        wspXP = textObj.Position.X;
+                                        wspYP = textObj.Position.Y;
+                                        orignal_rotation = textObj.Rotation;
+                                    } else if (objType == "MText") {
+                                        MText textMObj = entity as MText;
+                                        wspXP = textMObj.Location.X;
+                                        wspYP = textMObj.Location.Y;
+                                        orignal_rotation = textMObj.Rotation;
+                                    } else {
+                                        continue;
+                                    }
+                                    //ed.WriteMessage(objType + $"\n");
+
+                                    Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
+
+
+                                    if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
+
+                                    Point3d vec = new Point3d(dummy.GetClosestPointTo(objPts, true).X, dummy.GetClosestPointTo(objPts, true).Y, 0.0);
+                                    on_line = vec.DistanceTo(objPts) < prec;
+
+                                    if (on_line && (orignal_rotation == 0)) {
+
+                                        angle = ValidAngle(angle);
+
+                                        InserRotation(db, doc, entity, objType, angle);
+
+                                        text_ids.RemoveAt(i);
+                                        i--;
+
+                                        liczba_porzadkowa++;
+                                        //ed.WriteMessage($"{liczba_porzadkowa} {entity.GetType().Name} -> {lineEntity.GetType().Name}");
+                                    }
+                                }
+                            }
+                        }
+                    } else if (lineEntity.GetType().Name == "Polyline2d") {
+
+                        pline2d = lineEntity as Autodesk.AutoCAD.DatabaseServices.Polyline2d;
+
+                        int counter_of_vertex = 0;
+
+                        List<double> wspX = new List<double>();
+                        List<double> wspY = new List<double>();
+                        List<double> wspZ = new List<double>();
+
+                        if (pline2d != null) {
+
+                            foreach (ObjectId vId in pline2d) {
+
+                                Vertex2d v2d = (Vertex2d)trans.GetObject(vId, OpenMode.ForRead);
+                                counter_of_vertex++;
+
+                                wspX.Add(v2d.Position.X);
+                                wspY.Add(v2d.Position.Y);
+                                wspZ.Add(0.0);
+
+                            }
+
+                            for (int jk = 0; jk < (counter_of_vertex - 1); jk++) {
+
+                                wspX0 = Math.Round(wspX[jk], 3);
+                                wspY0 = Math.Round(wspY[jk], 3);
+                                //wspZ0 = Math.Round(wspZ[jk], 3);
+
+                                wspX1 = Math.Round(wspX[jk + 1], 3);
+                                wspY1 = Math.Round(wspY[jk + 1], 3);
+                                //wspZ1 = Math.Round(wspZ[jk + 1], 3);
+
+                                deltaX01 = wspX1 - wspX0;
+                                deltaY01 = wspY1 - wspY0;
+
+
+                                if (deltaX01 == 0 && deltaY01 == 0) {
+
+                                    angle = 0;
+
+                                } else {
+                                    angle = Math.Atan2(deltaY01, deltaX01);
+                                }
+
+                                Point3d startPoint = new Point3d(wspX0, wspY0, 0.0);
+                                Point3d endPoint = new Point3d(wspX1, wspY1, 0.0);
+                                Line dummy = new Line(startPoint, endPoint);
+
+                                int idx = 0;
+                                for (int i = 0; i < text_ids.Count; i++) {
+
+                                    Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
+                                    string objType = entity.GetType().Name;
+
+                                    if (objType == "BlockReference") {
+                                        BlockReference blockRef = entity as BlockReference;
+                                        wspXP = blockRef.Position.X;
+                                        wspYP = blockRef.Position.Y;
+                                        orignal_rotation = blockRef.Rotation;
+                                    } else if (objType == "DBText") {
+                                        DBText textObj = entity as DBText;
+                                        wspXP = textObj.Position.X;
+                                        wspYP = textObj.Position.Y;
+                                        orignal_rotation = textObj.Rotation;
+                                    } else if (objType == "MText") {
+                                        MText textMObj = entity as MText;
+                                        wspXP = textMObj.Location.X;
+                                        wspYP = textMObj.Location.Y;
+                                        orignal_rotation = textMObj.Rotation;
+                                    } else {
+                                        continue;
+                                    }
+                                    //ed.WriteMessage(objType + $"\n");
+
+
+
+
+                                    Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
+
+                                    //if (endPoint == objPts) { continue; }
+
+                                    if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
+
+                                    Point3d vec = new Point3d(dummy.GetClosestPointTo(objPts, true).X, dummy.GetClosestPointTo(objPts, true).Y, 0.0);
+                                    on_line = vec.DistanceTo(objPts) < prec;
+
+                                    if (on_line && (orignal_rotation == 0)) {
+
+                                        angle = ValidAngle(angle);
+
+                                        InserRotation(db, doc, entity, objType, angle);
+
+                                        text_ids.RemoveAt(i);
+                                        i--;
+
+                                        liczba_porzadkowa++;
+                                        //ed.WriteMessage($"{liczba_porzadkowa} {entity.GetType().Name} -> {lineEntity.GetType().Name}");
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        continue;
+                        // lineEntity.GetType().Name != "Polyline"
+                    }
+
+
+                    trans.Commit();
+                }
+            }
+        }
+
+        public List<ObjectId> GetIds(PromptSelectionResult selectionResult, string type = "line") {
+
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            List<ObjectId> list_ids = new List<ObjectId>();
+
+            SelectionSet selectionSet = selectionResult.Value;
+
+            long lid = 0;
+
+            //List<(ObjectId, string)> lt = new List<(ObjectId, string)> ();
+
+
+            foreach (SelectedObject selectedObject in selectionSet) {
+                using (Transaction trans = db.TransactionManager.StartTransaction()) {
+                    using (Entity entity = trans.GetObject(selectedObject.ObjectId, OpenMode.ForRead) as Entity) {
+
+
+
+                        if (type == "line") {
+                            if (entity.GetType().Name == "Line" ||
+                                entity.GetType().Name == "Polyline" ||
+                                entity.GetType().Name == "Polyline3d" ||
+                                entity.GetType().Name == "Polyline2d") {
+
+                                list_ids.Add(selectedObject.ObjectId);
+
+                                //(ObjectId, string) temp_tuple = (selectedObject.ObjectId, entity.GetType().Name);
+                                //lt.Add(temp_tuple);
+                                //ed.WriteMessage($"{temp_tuple.Item1}---{temp_tuple.Item2}\n");
+
+                                lid++;
+                            }
+                        } else if (type == "text") {
+
+                            if (entity.GetType().Name == "BlockReference" ||
+                                entity.GetType().Name == "DBText" ||
+                                entity.GetType().Name == "MText") {
+
+                                list_ids.Add(selectedObject.ObjectId);
+                                lid++;
+                            }
+                        } else if (type == "block") {
+
+                            if (entity.GetType().Name == "BlockReference") {
+
+                                list_ids.Add(selectedObject.ObjectId);
+                                lid++;
+                            }
+                        } else if (type == "line3d") {
+
+                            if (entity.GetType().Name == "Line" ||
+                                entity.GetType().Name == "Polyline3d") {
+
+                                list_ids.Add(selectedObject.ObjectId);
+                                lid++;
+                            }
+                        } else if (type == "lineCircle") {
+                            if (entity.GetType().Name == "Line" ||
+                                entity.GetType().Name == "Polyline" ||
+                                entity.GetType().Name == "Polyline3d" ||
+                                entity.GetType().Name == "Polyline2d" ||
+                                entity.GetType().Name == "Circle" ||
+                                entity.GetType().Name == "Arc") {
+
+                                list_ids.Add(selectedObject.ObjectId);
+                                lid++;
+                            }
+                        
+                        } else if (type == "CircleArc") {
+                        if (entity.GetType().Name == "Arc" ||
+                            entity.GetType().Name == "Circle") {
+
+                            list_ids.Add(selectedObject.ObjectId);
+                            lid++;
+                        }
+                        } else if (type == "Polyline") {
+                            if (entity.GetType().Name == "Polyline") {
+
+                                list_ids.Add(selectedObject.ObjectId);
+                                lid++;
+                            }
+
+                        }
+                }
+                }
+            }
+            ed.WriteMessage($"\nElementów typu {type}: {lid}");
+
+            //foreach (ObjectId oi in list_ids) { ed.WriteMessage(oi.ToString()); }
+
+
+            return list_ids;
+        }
+
+        public List<string> GetLayerNameBySelected(PromptSelectionResult selectionResult, string type = "all") {
+
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            List<string> list_ids = new List<string>();
+
+            SelectionSet selectionSet = selectionResult.Value;
+
+            long lid = 0;
+
+            //List<(ObjectId, string)> lt = new List<(ObjectId, string)> ();
+
+
+            foreach (SelectedObject selectedObject in selectionSet) {
+                using (Transaction trans = db.TransactionManager.StartTransaction()) {
+                    using (Entity entity = trans.GetObject(selectedObject.ObjectId, OpenMode.ForRead) as Entity) {
+
+
+
+                        if (type == "line") {
+                            if (entity.GetType().Name == "Line" ||
+                                entity.GetType().Name == "Polyline" ||
+                                entity.GetType().Name == "Polyline3d" ||
+                                entity.GetType().Name == "Polyline2d") {
+
+                                if (!list_ids.Contains(entity.Layer)) {
+                                    list_ids.Add(entity.Layer);
+                                }
+
+                                lid++;
+                            }
+                        } else if (type == "text") {
+
+                            if (entity.GetType().Name == "BlockReference" ||
+                                entity.GetType().Name == "DBText" ||
+                                entity.GetType().Name == "MText") {
+
+                                if (!list_ids.Contains(entity.Layer)) {
+                                    list_ids.Add(entity.Layer);
+                                }
+                                lid++;
+                            }
+                        } else if (type == "block") {
+
+                            if (entity.GetType().Name == "BlockReference") {
+
+                                if (!list_ids.Contains(entity.Layer)) {
+                                    list_ids.Add(entity.Layer);
+                                }
+                                lid++;
+                            }
+                        } else if (type == "line3d") {
+
+                            if (entity.GetType().Name == "Line" ||
+                                entity.GetType().Name == "Polyline3d") {
+
+                                if (!list_ids.Contains(entity.Layer)) {
+                                    list_ids.Add(entity.Layer);
+                                }
+                                lid++;
+                            }
+                        }
+
+                        else {
+                            if (!list_ids.Contains(entity.Layer)) {
+                                list_ids.Add(entity.Layer);
+                            }
+                            lid++;
+                        }
+                    }
+                }
+            }
+            ed.WriteMessage($"\nElementów typu {type}: {lid}");
+
+            return list_ids;
+        }
+
         private void InserRotation(Database db, Document doc, Entity entity, string objType, Double angle) {
 
             using (Transaction transModify = db.TransactionManager.StartTransaction()) {
@@ -876,7 +1446,7 @@ namespace Geo_geo.Class {
 
         }
 
-        private bool InBox(Point3d sP3D, Point3d eP3D, Point3d pP3D, double prec) {
+        public bool InBox(Point3d sP3D, Point3d eP3D, Point3d pP3D, double prec) {
 
             if (sP3D.X > eP3D.X) {
                 if (pP3D.X > (sP3D.X + prec)) {
@@ -915,7 +1485,7 @@ namespace Geo_geo.Class {
             if ((Math.Round(wspP, 2) < (Math.Round(wsp0, 2) - Math.Round(diff, 2))) && (Math.Round(wspP, 2) < (Math.Round(wsp1, 2) - Math.Round(diff, 2)))) {
                 change = false;
             }
-            if ((Math.Round(wspP, 2) > ( Math.Round(wsp0, 2) + Math.Round(diff, 2))) && (Math.Round(wspP, 2) > (Math.Round(wsp1, 2) + Math.Round(diff, 2)))) {
+            if ((Math.Round(wspP, 2) > (Math.Round(wsp0, 2) + Math.Round(diff, 2))) && (Math.Round(wspP, 2) > (Math.Round(wsp1, 2) + Math.Round(diff, 2)))) {
                 change = false;
             }
 
@@ -930,10 +1500,10 @@ namespace Geo_geo.Class {
             (Math.Round(wspX0, 2) >= (Math.Round(wspX1, 2) - prec)) &&
             (Math.Round(wspY0, 2) <= (Math.Round(wspY1, 2) + prec)) &&
             (Math.Round(wspY0, 2) >= (Math.Round(wspY1, 2) - prec))
-            ) { 
+            ) {
 
                 on_line = true;
-            
+
             }
 
 
