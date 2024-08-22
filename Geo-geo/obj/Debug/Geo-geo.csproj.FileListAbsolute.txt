@@ -16,3 +16,15 @@ D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucMain.resources
 D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo-geo.csproj.GenerateResource.cache
 D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucBlocks.resources
 D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucCzolowki.resources
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Debug\GeoAPI.CoordinateSystems.dll
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Debug\GeoAPI.dll
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Debug\ProjNET.dll
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Debug\GeoAPI.pdb
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Debug\GeoAPI.xml
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Debug\GeoAPI.CoordinateSystems.pdb
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Debug\GeoAPI.CoordinateSystems.xml
+D:\Visual_Studio\Geo-geo\Geo-geo\bin\Debug\ProjNET.xml
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucMarkery.resources
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucSandbox.resources
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.fEWmapa.resources
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucDistance.resources
