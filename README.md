@@ -11,6 +11,7 @@ Najważniejsze funkcje przedstawione na gifach:
 ![acad3](https://github.com/user-attachments/assets/cbe09af6-5e92-4d7c-8492-95c536dabd99)
 
 # Siatka krzyży i godło
+![acad4](https://github.com/user-attachments/assets/ac5eae56-9acc-4d69-a9b6-713c51b4ee2e)
 
 ---
 Instalacja
