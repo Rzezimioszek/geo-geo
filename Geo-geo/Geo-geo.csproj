@@ -86,10 +86,13 @@
     <Compile Include="Class\cGeneralize.cs" />
     <Compile Include="Class\cImportPik.cs" />
     <Compile Include="Class\cExportPik.cs" />
+    <Compile Include="Class\cKonwersja.cs" />
     <Compile Include="Class\cObrot.cs" />
     <Compile Include="Class\cOpisyMapy.cs" />
+    <Compile Include="Class\cOther.cs" />
     <Compile Include="Class\cPikietowanie.cs" />
     <Compile Include="Class\cPointAtSurface.cs" />
+    <Compile Include="Class\cPointSort.cs" />
     <Compile Include="Class\cPoligonBoundry.cs" />
     <Compile Include="Class\cRzutowanie.cs" />
     <Compile Include="Class\cSimple.cs" />
@@ -102,11 +105,23 @@
     <Compile Include="Class\FORMS\fEWmapa.Designer.cs">
       <DependentUpon>fEWmapa.cs</DependentUpon>
     </Compile>
+    <Compile Include="Class\FORMS\fLayoutSelector.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Class\FORMS\fLayoutSelector.Designer.cs">
+      <DependentUpon>fLayoutSelector.cs</DependentUpon>
+    </Compile>
     <Compile Include="Class\FORMS\ucBlocks.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Class\FORMS\ucBlocks.Designer.cs">
       <DependentUpon>ucBlocks.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Class\FORMS\ucBlockTable.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Class\FORMS\ucBlockTable.Designer.cs">
+      <DependentUpon>ucBlockTable.cs</DependentUpon>
     </Compile>
     <Compile Include="Class\FORMS\ucCzolowki.cs">
       <SubType>UserControl</SubType>
@@ -138,14 +153,21 @@
     <Compile Include="Class\FORMS\ucSandbox.Designer.cs">
       <DependentUpon>ucSandbox.cs</DependentUpon>
     </Compile>
+    <Compile Include="cLayout.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Class\FORMS\fEWmapa.resx">
       <DependentUpon>fEWmapa.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Class\FORMS\fLayoutSelector.resx">
+      <DependentUpon>fLayoutSelector.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Class\FORMS\ucBlocks.resx">
       <DependentUpon>ucBlocks.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Class\FORMS\ucBlockTable.resx">
+      <DependentUpon>ucBlockTable.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Class\FORMS\ucCzolowki.resx">
       <DependentUpon>ucCzolowki.cs</DependentUpon>

@@ -28,3 +28,5 @@ D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucMarkery.resourc
 D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucSandbox.resources
 D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.fEWmapa.resources
 D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucDistance.resources
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.ucBlockTable.resources
+D:\Visual_Studio\Geo-geo\Geo-geo\obj\Debug\Geo_geo.Class.FORMS.fLayoutSelector.resources
