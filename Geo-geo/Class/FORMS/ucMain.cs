@@ -243,5 +243,9 @@ namespace Geo_geo.Class.FORMS {
             }
 
         }
+
+        private void lblFormat_Click(object sender, EventArgs e) {
+
+        }
     }
 }

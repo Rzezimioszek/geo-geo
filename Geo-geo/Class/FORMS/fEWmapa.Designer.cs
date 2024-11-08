@@ -116,6 +116,7 @@
             this.Name = "fEWmapa";
             this.ShowIcon = false;
             this.Text = "Kod eksportowanych punktów";
+            this.Load += new System.EventHandler(this.fEWmapa_Load_1);
             this.ResumeLayout(false);
             this.PerformLayout();
 

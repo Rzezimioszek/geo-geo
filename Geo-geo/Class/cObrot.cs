@@ -844,6 +844,7 @@ namespace Geo_geo.Class {
 
             double prec = 0.05;
             bool on_line = false;
+            double angleDist = 0.001;
 
             PromptSelectionResult selectionResult = ed.GetSelection();
             if (selectionResult.Status != PromptStatus.OK) {
@@ -854,7 +855,7 @@ namespace Geo_geo.Class {
             List<ObjectId> line_ids = new List<ObjectId>();
             List<ObjectId> text_ids = new List<ObjectId>();
 
-            line_ids = GetIds(selectionResult, "line");
+            line_ids = GetIds(selectionResult, "lineCircle");
             text_ids = GetIds(selectionResult, "text");
 
 
@@ -868,16 +869,10 @@ namespace Geo_geo.Class {
             foreach (ObjectId line_id in line_ids) {
                 using (Transaction trans = db.TransactionManager.StartTransaction()) {
                     Entity lineEntity = trans.GetObject(line_id, OpenMode.ForRead) as Entity;
+                    
                     if (lineEntity == null) {
                         continue;
                     }
-
-                    //ed.WriteMessage(lineEntity.GetType().Name + $"\n");
-
-                    Line line = new Line();
-                    Autodesk.AutoCAD.DatabaseServices.Polyline pline = new Autodesk.AutoCAD.DatabaseServices.Polyline();
-                    Autodesk.AutoCAD.DatabaseServices.Polyline3d pline3d = new Autodesk.AutoCAD.DatabaseServices.Polyline3d();
-                    Autodesk.AutoCAD.DatabaseServices.Polyline2d pline2d = new Autodesk.AutoCAD.DatabaseServices.Polyline2d();
 
                     double angle = 0.0;
 
@@ -889,16 +884,18 @@ namespace Geo_geo.Class {
                     double deltaX01 = 0.0;
                     double deltaY01 = 0.0;
 
-
                     if (lineEntity == null) { continue; }
 
                     if (lineEntity.GetType().Name == "Line") {
+
+                        Line line = new Line();
 
                         line = lineEntity as Line;
                         angle = line.Angle;
 
                         Point3d startPoint = new Point3d(line.StartPoint.X, line.StartPoint.Y, 0.0);
                         Point3d endPoint = new Point3d(line.EndPoint.X, line.EndPoint.Y, 0.0);
+
                         Line dummy = new Line(startPoint, endPoint);
 
                         for (int i = 0; i < text_ids.Count; i++) {
@@ -906,50 +903,28 @@ namespace Geo_geo.Class {
                             Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
                             string objType = entity.GetType().Name;
 
-
-                            if (objType == "BlockReference") {
-                                BlockReference blockRef = entity as BlockReference;
-                                wspXP = blockRef.Position.X;
-                                wspYP = blockRef.Position.Y;
-                                orignal_rotation = blockRef.Rotation;
-                            } else if (objType == "DBText") {
-                                DBText textObj = entity as DBText;
-                                wspXP = textObj.Position.X;
-                                wspYP = textObj.Position.Y;
-                                orignal_rotation = textObj.Rotation;
-                            } else if (objType == "MText") {
-                                MText textMObj = entity as MText;
-                                wspXP = textMObj.Location.X;
-                                wspYP = textMObj.Location.Y;
-                                orignal_rotation = textMObj.Rotation;
-                            } else {
-                                continue;
-                            }
-                            //ed.WriteMessage(objType + $"\n");
+                            List<double> values = GetPositionAndAngle(entity);
+                            wspXP = values[0];
+                            wspYP = values[1];
+                            orignal_rotation = values[2];
 
                             Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
                             if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
-
-                            Point3d vec = new Point3d(dummy.GetClosestPointTo(objPts, true).X, dummy.GetClosestPointTo(objPts, true).Y, 0.0);
-                            on_line = vec.DistanceTo(objPts) < prec;
+                            on_line = IsOnLineVec(dummy, objPts, prec);
 
                             if (on_line && (orignal_rotation == 0)) {
                                 angle = ValidAngle(angle);
 
-
                                 InserRotation(db, doc, entity, objType, angle);
-
                                 text_ids.RemoveAt(i);
-
                                 i--;
-
                                 liczba_porzadkowa++;
-                                //ed.WriteMessage($"{liczba_porzadkowa} {entity.GetType().Name} -> {lineEntity.GetType().Name}");
                             }
                         }
 
                     } else if (lineEntity.GetType().Name == "Polyline") {
 
+                        Autodesk.AutoCAD.DatabaseServices.Polyline pline = new Autodesk.AutoCAD.DatabaseServices.Polyline();
                         pline = lineEntity as Autodesk.AutoCAD.DatabaseServices.Polyline;
 
                         for (int jk = 0; jk < (pline.NumberOfVertices - 1); jk++) {
@@ -959,56 +934,27 @@ namespace Geo_geo.Class {
                             wspX1 = Math.Round(pline.GetPoint2dAt(jk + 1).X, 3);
                             wspY1 = Math.Round(pline.GetPoint2dAt(jk + 1).Y, 3);
 
-                            deltaX01 = wspX1 - wspX0;
-                            deltaY01 = wspY1 - wspY0;
-
-                            if (deltaX01 == 0 && deltaY01 == 0) {
-
-                                angle = 0;
-
-                            } else {
-                                angle = Math.Atan2(deltaY01, deltaX01);
-                            }
-
                             Point3d startPoint = new Point3d(wspX0, wspY0, 0.0);
                             Point3d endPoint = new Point3d(wspX1, wspY1, 0.0);
                             Line dummy = new Line(startPoint, endPoint);
 
+                            angle = dummy.Angle;
 
                             for (int i = 0; i < text_ids.Count; i++) {
 
                                 Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
                                 string objType = entity.GetType().Name;
 
-                                if (objType == "BlockReference") {
-                                    BlockReference blockRef = entity as BlockReference;
-                                    wspXP = blockRef.Position.X;
-                                    wspYP = blockRef.Position.Y;
-                                    orignal_rotation = blockRef.Rotation;
-                                } else if (objType == "DBText") {
-                                    DBText textObj = entity as DBText;
-                                    wspXP = textObj.Position.X;
-                                    wspYP = textObj.Position.Y;
-                                    orignal_rotation = textObj.Rotation;
-                                } else if (objType == "MText") {
-                                    MText textMObj = entity as MText;
-                                    wspXP = textMObj.Location.X;
-                                    wspYP = textMObj.Location.Y;
-                                    orignal_rotation = textMObj.Rotation;
-                                } else {
-                                    continue;
-                                }
-                                //ed.WriteMessage(objType + $"\n");
-
+                                List<double> values = GetPositionAndAngle(entity);
+                                wspXP = values[0];
+                                wspYP = values[1];
+                                orignal_rotation = values[2];
 
                                 Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
 
-                                //if (endPoint == objPts) { continue; }
-
                                 if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
 
-                                Point3d vec = new Point3d(dummy.GetClosestPointTo(objPts, true).X, dummy.GetClosestPointTo(objPts, true).Y, 0.0);
-                                on_line = vec.DistanceTo(objPts) < prec;
+                                on_line = IsOnLineVec(dummy, objPts, prec);
 
                                 if (on_line && (orignal_rotation == 0)) {
 
@@ -1027,8 +973,7 @@ namespace Geo_geo.Class {
                     } else if (lineEntity.GetType().Name == "Polyline3d") {
 
 
-
-                        //Polyline
+                        Autodesk.AutoCAD.DatabaseServices.Polyline3d pline3d = new Autodesk.AutoCAD.DatabaseServices.Polyline3d();
                         pline3d = lineEntity as Autodesk.AutoCAD.DatabaseServices.Polyline3d;
 
 
@@ -1061,53 +1006,27 @@ namespace Geo_geo.Class {
                                 wspY1 = Math.Round(wspY[jk + 1], 3);
                                 //wspZ1 = Math.Round(wspZ[jk + 1], 3);
 
-                                deltaX01 = wspX1 - wspX0;
-                                deltaY01 = wspY1 - wspY0;
-
-                                if (deltaX01 == 0 && deltaY01 == 0) {
-
-                                    angle = 0;
-
-                                } else {
-                                    angle = Math.Atan2(deltaY01, deltaX01);
-                                }
-
                                 Point3d startPoint = new Point3d(wspX0, wspY0, 0.0);
                                 Point3d endPoint = new Point3d(wspX1, wspY1, 0.0);
                                 Line dummy = new Line(startPoint, endPoint);
+                                angle = dummy.Angle;
 
                                 for (int i = 0; i < text_ids.Count; i++) {
 
                                     Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
                                     string objType = entity.GetType().Name;
 
-                                    if (objType == "BlockReference") {
-                                        BlockReference blockRef = entity as BlockReference;
-                                        wspXP = blockRef.Position.X;
-                                        wspYP = blockRef.Position.Y;
-                                        orignal_rotation = blockRef.Rotation;
-                                    } else if (objType == "DBText") {
-                                        DBText textObj = entity as DBText;
-                                        wspXP = textObj.Position.X;
-                                        wspYP = textObj.Position.Y;
-                                        orignal_rotation = textObj.Rotation;
-                                    } else if (objType == "MText") {
-                                        MText textMObj = entity as MText;
-                                        wspXP = textMObj.Location.X;
-                                        wspYP = textMObj.Location.Y;
-                                        orignal_rotation = textMObj.Rotation;
-                                    } else {
-                                        continue;
-                                    }
-                                    //ed.WriteMessage(objType + $"\n");
+                                    List<double> values = GetPositionAndAngle(entity);
+                                    wspXP = values[0];
+                                    wspYP = values[1];
+                                    orignal_rotation = values[2];
 
                                     Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
 
 
                                     if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
 
-                                    Point3d vec = new Point3d(dummy.GetClosestPointTo(objPts, true).X, dummy.GetClosestPointTo(objPts, true).Y, 0.0);
-                                    on_line = vec.DistanceTo(objPts) < prec;
+                                    on_line = IsOnLineVec(dummy, objPts, prec);
 
                                     if (on_line && (orignal_rotation == 0)) {
 
@@ -1119,13 +1038,13 @@ namespace Geo_geo.Class {
                                         i--;
 
                                         liczba_porzadkowa++;
-                                        //ed.WriteMessage($"{liczba_porzadkowa} {entity.GetType().Name} -> {lineEntity.GetType().Name}");
                                     }
                                 }
                             }
                         }
                     } else if (lineEntity.GetType().Name == "Polyline2d") {
 
+                        Autodesk.AutoCAD.DatabaseServices.Polyline2d pline2d = new Autodesk.AutoCAD.DatabaseServices.Polyline2d();
                         pline2d = lineEntity as Autodesk.AutoCAD.DatabaseServices.Polyline2d;
 
                         int counter_of_vertex = 0;
@@ -1157,21 +1076,11 @@ namespace Geo_geo.Class {
                                 wspY1 = Math.Round(wspY[jk + 1], 3);
                                 //wspZ1 = Math.Round(wspZ[jk + 1], 3);
 
-                                deltaX01 = wspX1 - wspX0;
-                                deltaY01 = wspY1 - wspY0;
-
-
-                                if (deltaX01 == 0 && deltaY01 == 0) {
-
-                                    angle = 0;
-
-                                } else {
-                                    angle = Math.Atan2(deltaY01, deltaX01);
-                                }
 
                                 Point3d startPoint = new Point3d(wspX0, wspY0, 0.0);
                                 Point3d endPoint = new Point3d(wspX1, wspY1, 0.0);
                                 Line dummy = new Line(startPoint, endPoint);
+                                angle = dummy.Angle;
 
                                 int idx = 0;
                                 for (int i = 0; i < text_ids.Count; i++) {
@@ -1179,37 +1088,17 @@ namespace Geo_geo.Class {
                                     Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
                                     string objType = entity.GetType().Name;
 
-                                    if (objType == "BlockReference") {
-                                        BlockReference blockRef = entity as BlockReference;
-                                        wspXP = blockRef.Position.X;
-                                        wspYP = blockRef.Position.Y;
-                                        orignal_rotation = blockRef.Rotation;
-                                    } else if (objType == "DBText") {
-                                        DBText textObj = entity as DBText;
-                                        wspXP = textObj.Position.X;
-                                        wspYP = textObj.Position.Y;
-                                        orignal_rotation = textObj.Rotation;
-                                    } else if (objType == "MText") {
-                                        MText textMObj = entity as MText;
-                                        wspXP = textMObj.Location.X;
-                                        wspYP = textMObj.Location.Y;
-                                        orignal_rotation = textMObj.Rotation;
-                                    } else {
-                                        continue;
-                                    }
-                                    //ed.WriteMessage(objType + $"\n");
-
-
-
+                                    List<double> values = GetPositionAndAngle(entity);
+                                    wspXP = values[0];
+                                    wspYP = values[1];
+                                    orignal_rotation = values[2];
 
                                     Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
 
-                                    //if (endPoint == objPts) { continue; }
 
                                     if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
 
-                                    Point3d vec = new Point3d(dummy.GetClosestPointTo(objPts, true).X, dummy.GetClosestPointTo(objPts, true).Y, 0.0);
-                                    on_line = vec.DistanceTo(objPts) < prec;
+                                    on_line = IsOnLineVec(dummy, objPts, prec);
 
                                     if (on_line && (orignal_rotation == 0)) {
 
@@ -1221,20 +1110,219 @@ namespace Geo_geo.Class {
                                         i--;
 
                                         liczba_porzadkowa++;
-                                        //ed.WriteMessage($"{liczba_porzadkowa} {entity.GetType().Name} -> {lineEntity.GetType().Name}");
                                     }
                                 }
                             }
                         }
+                    } else if (lineEntity.GetType().Name == "Circle") {
+
+                        Circle acCirc = lineEntity as Circle;
+
+                        double radius = acCirc.Radius;
+                        Point3d oldPoint = acCirc.Center;
+
+                        Point2d tempPoint = new Point2d();
+                        using (Polyline simplifyCircle = new Polyline()) {
+
+                            int vNum = 0;
+
+                            for (double itr = 0.0; itr < 6.28; itr += angleDist) {
+
+                                tempPoint = new Point2d(oldPoint.X + (radius * Math.Sin(itr)),
+                                                        oldPoint.Y + (radius * Math.Cos(itr)));
+                                simplifyCircle.AddVertexAt(vNum, tempPoint, 0, 0, 0);
+                                //ed.WriteMessage($"\nVertex: {vNum}, {tempPoint.X}, {tempPoint.Y}");
+                                vNum++;
+                            }
+
+                            tempPoint = new Point2d(oldPoint.X + (radius * Math.Sin(Math.PI * 0.0)),
+                                                    oldPoint.Y + (radius * Math.Cos(Math.PI * 0.0)));
+                            simplifyCircle.AddVertexAt(vNum, tempPoint, 0, 0, 0);
+
+
+                            for (int jk = 0; jk < (simplifyCircle.NumberOfVertices - 1); jk++) {
+
+                                wspX0 = Math.Round(simplifyCircle.GetPoint2dAt(jk).X, 3);
+                                wspY0 = Math.Round(simplifyCircle.GetPoint2dAt(jk).Y, 3);
+                                wspX1 = Math.Round(simplifyCircle.GetPoint2dAt(jk + 1).X, 3);
+                                wspY1 = Math.Round(simplifyCircle.GetPoint2dAt(jk + 1).Y, 3);
+
+                                Point3d startPoint = new Point3d(wspX0, wspY0, 0.0);
+                                Point3d endPoint = new Point3d(wspX1, wspY1, 0.0);
+                                Line dummy = new Line(startPoint, endPoint);
+                                angle = dummy.Angle;
+
+
+                                for (int i = 0; i < text_ids.Count; i++) {
+
+                                    Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
+                                    string objType = entity.GetType().Name;
+
+                                    List<double> values = GetPositionAndAngle(entity);
+                                    wspXP = values[0];
+                                    wspYP = values[1];
+                                    orignal_rotation = values[2];
+
+                                    Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
+
+                                    if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
+
+                                    on_line = IsOnLineVec(dummy, objPts, prec);
+
+                                    if (on_line && (orignal_rotation == 0)) {
+
+                                        angle = ValidAngle(angle);
+
+                                        InserRotation(db, doc, entity, objType, angle);
+
+                                        text_ids.RemoveAt(i);
+                                        i--;
+
+                                        liczba_porzadkowa++;
+                                    }
+                                }
+                            }
+                        }
+
+                    } else if (lineEntity.GetType().Name == "Arc") {
+
+                        ed.WriteMessage("\nOh thats arc!\n");
+
+                        Arc acArc = lineEntity as Arc;
+
+                        double radius = acArc.Radius;
+
+                        Point3d oldPoint = acArc.Center;
+                        Point2d tempPoint = new Point2d();
+
+                        double angleMin = acArc.StartAngle;
+                        double angleMax = acArc.EndAngle;
+                        Point3d fPoint = new Point3d(acArc.StartPoint.X, acArc.StartPoint.Y, 0);
+                        Point3d lPoint = new Point3d(acArc.EndPoint.X, acArc.EndPoint.Y, 0);
+
+                        Line dummy = new Line(oldPoint, fPoint);
+                        double startAngle = -(dummy.Angle - (Math.PI / 2));
+
+                        bool reverse = false;
+                        double diff = acArc.TotalAngle;
+
+                        if (diff < 0) { diff = -diff; } // can't be
+
+                        using (Polyline simplifyCircle = new Polyline()) {
+
+                            int vNum = 0;
+
+                            for (double itr = 0.0; itr < diff; itr += angleDist) {
+
+                                tempPoint = new Point2d(oldPoint.X + (radius * Math.Sin(startAngle - itr)),
+                                                        oldPoint.Y + (radius * Math.Cos(startAngle - itr)));
+                                simplifyCircle.AddVertexAt(vNum, tempPoint, 0, 0, 0);
+                                //ed.WriteMessage($"\nVertex: {vNum}, {tempPoint.X}, {tempPoint.Y}");
+                                vNum++;
+                            }
+
+                            tempPoint = new Point2d(oldPoint.X + (radius * Math.Sin(startAngle - diff)),
+                                                    oldPoint.Y + (radius * Math.Cos(startAngle - diff)));
+                            simplifyCircle.AddVertexAt(vNum, tempPoint, 0, 0, 0);
+
+
+                            for (int jk = 0; jk < (simplifyCircle.NumberOfVertices - 1); jk++) {
+
+                                wspX0 = Math.Round(simplifyCircle.GetPoint2dAt(jk).X, 3);
+                                wspY0 = Math.Round(simplifyCircle.GetPoint2dAt(jk).Y, 3);
+                                wspX1 = Math.Round(simplifyCircle.GetPoint2dAt(jk + 1).X, 3);
+                                wspY1 = Math.Round(simplifyCircle.GetPoint2dAt(jk + 1).Y, 3);
+
+
+                                Point3d startPoint = new Point3d(wspX0, wspY0, 0.0);
+                                Point3d endPoint = new Point3d(wspX1, wspY1, 0.0);
+                                Line dummy2 = new Line(startPoint, endPoint);
+                                angle = dummy2.Angle;
+
+
+                                for (int i = 0; i < text_ids.Count; i++) {
+
+                                    Entity entity = trans.GetObject(text_ids[i], OpenMode.ForRead) as Entity;
+                                    string objType = entity.GetType().Name;
+
+                                    List<double> values = GetPositionAndAngle(entity);
+                                    wspXP = values[0];
+                                    wspYP = values[1];
+                                    orignal_rotation = values[2];
+
+                                    Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
+
+                                    if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
+
+                                    on_line = IsOnLineVec(dummy2, objPts, prec);
+
+                                    if (on_line && (orignal_rotation == 0)) {
+
+                                        angle = ValidAngle(angle);
+
+                                        InserRotation(db, doc, entity, objType, angle);
+
+                                        text_ids.RemoveAt(i);
+                                        i--;
+
+                                        liczba_porzadkowa++;
+                                    }
+                                }
+                            }
+                        }
+
                     } else {
                         continue;
-                        // lineEntity.GetType().Name != "Polyline"
                     }
 
 
                     trans.Commit();
                 }
             }
+        }
+
+        public List<double> GetPositionAndAngle(Entity entity) {
+
+            List<double> result = new List<double>();
+
+            double wspXP = 0.0;
+            double wspYP = 0.0;
+            double orignal_rotation = 0.0;
+
+            string objType = entity.GetType().Name;
+
+            if (objType == "BlockReference") {
+                BlockReference blockRef = entity as BlockReference;
+                wspXP = blockRef.Position.X;
+                wspYP = blockRef.Position.Y;
+                orignal_rotation = blockRef.Rotation;
+
+
+            } else if (objType == "DBText") {
+                DBText textObj = entity as DBText;
+
+                wspXP = textObj.AlignmentPoint.X;
+                wspYP = textObj.AlignmentPoint.Y;
+
+                if ((Math.Round(wspXP, 2) == 0.00) && (Math.Round(wspYP, 2) == 0.00)) {
+
+                    wspXP = textObj.Position.X;
+                    wspYP = textObj.Position.Y;
+
+                }
+                orignal_rotation = textObj.Rotation;
+            } else if (objType == "MText") {
+                MText textMObj = entity as MText;
+                wspXP = textMObj.Location.X;
+                wspYP = textMObj.Location.Y;
+                orignal_rotation = textMObj.Rotation;
+            }
+
+            result.Insert(0, wspXP);
+            result.Insert(1, wspYP);
+            result.Insert(2, orignal_rotation);
+
+            return result;
         }
 
         public List<ObjectId> GetIds(PromptSelectionResult selectionResult, string type = "line") {
@@ -1512,13 +1600,23 @@ namespace Geo_geo.Class {
             return on_line;
         }
 
+        private bool IsOnLineVec(Line dummy, Point3d objPts,double prec) {
+
+            bool on_line;
+
+            Point3d vec = new Point3d(dummy.GetClosestPointTo(objPts, true).X, dummy.GetClosestPointTo(objPts, true).Y, 0.0);
+            on_line = vec.DistanceTo(objPts) < prec;
+
+
+            return on_line;
+        }
         private double ValidAngle(double angle) {
             if (angle < 0) {
                 angle += 2 * Math.PI;
             }
 
             if (angle > (Math.PI / 2)) {
-                if (angle < (1.5 * Math.PI)) {
+                if (angle <= (1.5 * Math.PI)) {
                     angle -= Math.PI;
                 }
             }

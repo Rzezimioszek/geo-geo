@@ -178,6 +178,15 @@ namespace Geo_geo.Class {
                 case 5.0:
                     zoom = 80;
                     break;
+                case 6.0:
+                    zoom = 160;
+                    break;
+                case 7.0:
+                    zoom = 240;
+                    break;
+                case 8.0:
+                    zoom = 320;
+                    break;
             }
 
 
@@ -370,14 +379,17 @@ namespace Geo_geo.Class {
 
                     pt = pPtRes.Value;
 
+                    /*
                     if (pts.Last().X == pt.X && pts.Last().Y == pt.Y && pts.Last().Z == pt.Z) {
                         pts.Remove(pts.Last());
+                        
                     }
                     else {
 
                         pts.Add(pt);
 
                     }
+                    */
                     
 
                     //ed.WriteMessage($"\nNew point at: {pt.X}\t{pt.Y}");

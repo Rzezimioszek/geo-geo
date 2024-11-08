@@ -6,10 +6,12 @@ using Autodesk.AutoCAD.Geometry;
 using NetTopologySuite.Geometries;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
+using static System.Net.Mime.MediaTypeNames;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace Geo_geo.Class {
@@ -86,23 +88,42 @@ namespace Geo_geo.Class {
 
             ImportBlock("cross", sourceFileName);
 
-            PromptPointResult pPtRes1 = PinFormMap();
+            Point3d pt1 = new Point3d();
+            Point3d pt2 = new Point3d();
 
-            if (pPtRes1.Status != PromptStatus.OK) {
-                ed.WriteMessage("\nNie wskazano punktu.");
-                return;
+            if (1 > 2) {
+
+                PromptPointResult pPtRes1 = PinFormMap();
+
+                if (pPtRes1.Status != PromptStatus.OK) {
+                    ed.WriteMessage("\nNie wskazano punktu.");
+                    return;
+                }
+
+
+
+                PromptPointResult pPtRes2 = PinFormMap();
+
+                if (pPtRes2.Status != PromptStatus.OK) {
+                    ed.WriteMessage("\nNie wskazano punktu.");
+                    return;
+                }
+
+                pt1 = pPtRes1.Value;
+                pt2 = pPtRes2.Value;
+
             }
+            else {
 
-            Point3d pt1 = pPtRes1.Value;
+                cOther square = new cOther();
 
-            PromptPointResult pPtRes2 = PinFormMap();
+                Point3dCollection pts = square.MyPolyJig();
 
-            if (pPtRes2.Status != PromptStatus.OK) {
-                ed.WriteMessage("\nNie wskazano punktu.");
-                return;
+
+                pt1 = pts[0];
+                pt2 = pts[2];
+
             }
-
-            Point3d pt2 = pPtRes2.Value;
 
 
             //AddLayerIfNotExists($"_krzyze_{scale:0}");
@@ -488,24 +509,48 @@ namespace Geo_geo.Class {
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
-            PromptPointResult pPtRes = PinFormMap();
+            Point3d pt2 = new Point3d();
+            Point3d pt1 = new Point3d();
 
-            if (pPtRes.Status != PromptStatus.OK) {
-                ed.WriteMessage("\nNie wskazano punktu.");
-                return;
+            if (1 > 2) {
+
+                PromptPointResult pPtRes = PinFormMap();
+
+                if (pPtRes.Status != PromptStatus.OK) {
+                    ed.WriteMessage("\nNie wskazano punktu.");
+                    return;
+                }
+
+                PromptPointResult pPtRes2 = PinFormMap();
+
+                if (pPtRes2.Status != PromptStatus.OK) {
+                    ed.WriteMessage("\nNie wskazano punktu.");
+                    return;
+                }
+
+                pt2 = pPtRes2.Value;
+                pt1 = pPtRes.Value;
+
+            } else {
+
+                cOther square = new cOther();
+
+                Point3dCollection pts = square.MyPolyJig();
+
+
+                pt1 = pts[0];
+                pt2 = pts[2];
+
             }
 
-            PromptPointResult pPtRes2 = PinFormMap();
 
-            if (pPtRes2.Status != PromptStatus.OK) {
-                ed.WriteMessage("\nNie wskazano punktu.");
-                return;
-            }
 
-            Point3d pt2 = pPtRes2.Value;
-            Point3d pt1 = pPtRes.Value;
 
-            AddLayerIfNotExists("_sekcje_500", 254);
+
+            double ogscale = DescScale();
+            string newLayer = $"_sekcje_{ogscale:0}";
+
+            AddLayerIfNotExists(newLayer, 254);
 
             double low_x = 0;
             double low_y = 0;
@@ -593,6 +638,9 @@ namespace Geo_geo.Class {
 
             double msg = 0.0;
 
+            double ogscale = DescScale();
+            string newLayer = $"_sekcje_{ogscale:0}";
+
             temp = Math.Floor((value_x - main_x) / 5000);
 
             // 1:10 000 part 1
@@ -647,11 +695,24 @@ namespace Geo_geo.Class {
 
             //ed.WriteMessage($"\n{temp_y}...{temp_x}");
 
+            if ($"{ogscale:0}" == "2000") {
+
+                //InsertGodlo(result, value_x, value_y, 2000);
+                return result;
+            }
+
             // 1:1 000
 
             temp = Math.Floor((3 - temp_y) + ((temp_x - 1) * 2.0));
 
             result = $"{result}.{temp:0}";
+
+            if ($"{ogscale:0}" == "1000") {
+
+                InsertGodlo(result, value_x, value_y, 1000);
+                return result;
+            }
+
 
             // 1:500
 
@@ -687,14 +748,37 @@ namespace Geo_geo.Class {
             return result;
         }
 
-        public void InsertGodlo(string result, double value_x, double value_y) {
+        public void InsertGodlo(string result, double value_x, double value_y, int scale = 500) {
 
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
-            double resx = value_x % 250;
-            double resy = value_y % 400;
+            double ogscale = DescScale();
+            string newLayer = $"_sekcje_{ogscale:0}";
+
+            double a = 250.0;
+            double b = 400.0;
+
+            double padx = 92;
+            double pady = 37;
+
+            int txt_h = 50;
+
+            // skalowanie 
+            a = a * (scale/500);
+            b = b * (scale/500);
+
+            txt_h = txt_h * (scale/500);
+
+            padx = padx * (scale/500);
+            pady = pady * (scale/500);
+
+            //
+
+
+            double resx = value_x % a;
+            double resy = value_y % b;
 
             value_x = value_x - resx;
             value_y = value_y - resy;
@@ -704,13 +788,13 @@ namespace Geo_geo.Class {
             Point2d pt2d = new Point2d(value_y, value_x);
             pline.AddVertexAt(0, pt2d, 0.0, 0.0, 0.0);
 
-            pt2d = new Point2d(value_y + 400, value_x);
+            pt2d = new Point2d(value_y + b, value_x);
             pline.AddVertexAt(1, pt2d, 0.0, 0.0, 0.0);
 
-            pt2d = new Point2d(value_y + 400, value_x + 250);
+            pt2d = new Point2d(value_y + b, value_x + a);
             pline.AddVertexAt(2, pt2d, 0.0, 0.0, 0.0);
 
-            pt2d = new Point2d(value_y, value_x + 250);
+            pt2d = new Point2d(value_y, value_x + a);
             pline.AddVertexAt(3, pt2d, 0.0, 0.0, 0.0);
 
             pt2d = new Point2d(value_y, value_x);
@@ -720,13 +804,19 @@ namespace Geo_geo.Class {
             DBText text = new DBText();
             text.TextString = result;
             // text.Position = new Point3d(value_y + 200, value_x + 125, 0);
-            text.Position = new Point3d(value_y + 37, value_x + 92, 0);
-            text.Height = 50;
+            //text.Position = new Point3d(value_y + pady, value_x + padx, 0);
+            text.Position = new Point3d(value_y + (b / 2), value_x + (a / 2), 0);
+
+            try {
+                text.Justify = AttachmentPoint.MiddleCenter;
+                text.AlignmentPoint = new Point3d(value_y + (b/2), value_x + (a/2),0);
+            } catch { }
+
+            text.Height = txt_h;
             text.WidthFactor = 0.66;
             text.AdjustAlignment(db);
 
             try {
-                string newLayer = "_sekcje_500";
                 text.Layer = newLayer;
                 pline.Layer = newLayer;
             }
@@ -802,6 +892,161 @@ namespace Geo_geo.Class {
                 using (StreamWriter sw = new StreamWriter(fileName)) {
 
                     sw.WriteLine(newScale.Value);
+                }
+            }
+        }
+
+        public void StrikethroughText() {
+
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            PromptSelectionResult selectionResult = ed.GetSelection();
+            if (selectionResult.Status != PromptStatus.OK) {
+                ed.WriteMessage("Nie wybrano elementów.");
+                return;
+            }
+
+            List<ObjectId> text_ids = new List<ObjectId>();
+
+            cObrot cO = new cObrot();
+            text_ids = cO.GetIds(selectionResult, "text");
+
+            cOther cOt = new cOther();
+
+
+            foreach (ObjectId id in text_ids) {
+                using (Transaction trans = db.TransactionManager.StartTransaction()) {
+                    Entity entity = trans.GetObject(id, OpenMode.ForRead) as Entity;
+
+                    double wspXP = 0.0;
+                    double wspYP = 0.0;
+
+                    double wspXN = 0.0;
+                    double wspYN = 0.0;
+
+                    if (entity.GetType().Name == "DBText") {
+
+                        DBText textObj = entity as DBText;
+                        var corners = cOt.ExtractBounds(txt: textObj);
+
+                        wspXP = corners[0].X + ((corners[1].X - corners[0].X) / 2);
+                        wspYP = corners[0].Y + ((corners[1].Y - corners[0].Y) / 2);
+
+                        wspXN = corners[2].X + ((corners[3].X - corners[2].X) / 2);
+                        wspYN = corners[2].Y + ((corners[3].Y - corners[2].Y) / 2);
+
+                        Line line = new Line(new Point3d(wspXP, wspYP, 0.0), new Point3d(wspXN, wspYN, 0.0));
+
+                        using (DocumentLock acLckDoc = doc.LockDocument()) {
+                            using (Transaction tr = db.TransactionManager.StartTransaction()) {
+                                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+
+                                btr.AppendEntity(line);
+                                tr.AddNewlyCreatedDBObject(line, true);
+                                tr.Commit();
+
+                            }
+                        }
+
+                    } else {
+                        continue;
+                    }
+
+                    trans.Commit();
+
+                }
+            }
+        }
+
+
+        public void StrikethroughTextOnPaper() {
+
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            string layerName = Autodesk.AutoCAD.ApplicationServices.Application.GetSystemVariable("clayer").ToString();
+
+            TypedValue[] filterlist = new TypedValue[5];
+
+
+            filterlist[0] = new TypedValue(0, "TEXT");
+
+            //8 = DxfCode.LayerName
+
+            filterlist[1] = new TypedValue(8, $"{layerName}");
+
+            //410 = DxfCode.LayoutName
+
+            filterlist[2] = new TypedValue(-4, "<NOT");
+
+            filterlist[3] = new TypedValue(410, "Model");
+
+            filterlist[4] = new TypedValue(-4, "NOT>");
+
+            SelectionFilter filter =
+
+                                    new SelectionFilter(filterlist);
+
+
+
+            PromptSelectionResult selectionResult = ed.SelectAll(filter);
+            if (selectionResult.Status != PromptStatus.OK) {
+                ed.WriteMessage("Nie wybrano elementów.");
+                return;
+            }
+
+            List<ObjectId> text_ids = new List<ObjectId>();
+
+            cObrot cO = new cObrot();
+            text_ids = cO.GetIds(selectionResult, "text");
+
+            cOther cOt = new cOther();
+
+
+            foreach (ObjectId id in text_ids) {
+                using (Transaction trans = db.TransactionManager.StartTransaction()) {
+                    Entity entity = trans.GetObject(id, OpenMode.ForRead) as Entity;
+
+                    double wspXP = 0.0;
+                    double wspYP = 0.0;
+
+                    double wspXN = 0.0;
+                    double wspYN = 0.0;
+
+                    if (entity.GetType().Name == "DBText") {
+
+                        DBText textObj = entity as DBText;
+                        var corners = cOt.ExtractBounds(txt: textObj);
+
+                        wspXP = corners[0].X + ((corners[1].X - corners[0].X) / 2);
+                        wspYP = corners[0].Y + ((corners[1].Y - corners[0].Y) / 2);
+
+                        wspXN = corners[2].X + ((corners[3].X - corners[2].X) / 2);
+                        wspYN = corners[2].Y + ((corners[3].Y - corners[2].Y) / 2);
+
+                        Line line = new Line(new Point3d(wspXP, wspYP, 0.0), new Point3d(wspXN, wspYN, 0.0));
+
+                        using (DocumentLock acLckDoc = doc.LockDocument()) {
+                            using (Transaction tr = db.TransactionManager.StartTransaction()) {
+                                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(textObj.BlockId, OpenMode.ForWrite);
+                                
+
+                                btr.AppendEntity(line);
+                                tr.AddNewlyCreatedDBObject(line, true);
+                                tr.Commit();
+
+                            }
+                        }
+
+                    } else {
+                        continue;
+                    }
+
+                    trans.Commit();
+
                 }
             }
         }

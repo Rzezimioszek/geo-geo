@@ -57,13 +57,19 @@ namespace Geo_geo.Class {
                     foreach (SelectedObject selectedObject in selection.Value) {
                         DBText dbText = tr.GetObject(selectedObject.ObjectId, OpenMode.ForRead) as DBText;
 
-                        double wspX = dbText.Position.X;
+
+                        double wspX = dbText.AlignmentPoint.X;
+                        double wspY = dbText.AlignmentPoint.Y;
+                        double wspZ = dbText.AlignmentPoint.Z;
+
+                        if ((Math.Round(wspX, 2) == 0.00) && (Math.Round(wspY, 2) == 0.00) && (Math.Round(wspZ, 2) == 0.00)) {
+                            wspX = dbText.Position.X;
+                            wspY = dbText.Position.Y;
+                            wspZ = dbText.Position.Z;
+
+                        }
                         string x = wspX.ToString(format);
-
-                        double wspY = dbText.Position.Y;
                         string y = wspY.ToString(format);
-
-                        double wspZ = dbText.Position.Z;
                         string z = wspZ.ToString(format);
 
                         string line = $"{dbText.TextString}\t{x}\t{y}\t{z}";
@@ -153,13 +159,18 @@ namespace Geo_geo.Class {
                     foreach (SelectedObject selectedObject in selection.Value) {
                         DBText dbText = tr.GetObject(selectedObject.ObjectId, OpenMode.ForRead) as DBText;
 
-                        double wspX = dbText.Position.X;
-                        string x = wspX.ToString(format);
+                        double wspX = dbText.AlignmentPoint.X;
+                        double wspY = dbText.AlignmentPoint.Y;
+                        double wspZ = dbText.AlignmentPoint.Z;
 
-                        double wspY = dbText.Position.Y;
+                        if ((Math.Round(wspX, 2) == 0.00) && (Math.Round(wspY, 2) == 0.00) && (Math.Round(wspZ, 2) == 0.00)) {
+                            wspX = dbText.Position.X;
+                            wspY = dbText.Position.Y;
+                            wspZ = dbText.Position.Z;
+
+                        }
+                        string x = wspX.ToString(format);                        
                         string y = wspY.ToString(format);
-
-                        double wspZ = dbText.Position.Z;
                         string z = wspZ.ToString(format);
 
                         double rotate = dbText.Rotation;
@@ -334,10 +345,17 @@ namespace Geo_geo.Class {
                                 DBText dbText = entity as DBText;
 
                                 name = dbText.TextString;
-                                wspX = dbText.Position.X;
-                                wspY = dbText.Position.Y;
-                                wspZ = dbText.Position.Z;
 
+                                wspX = dbText.AlignmentPoint.X;
+                                wspY = dbText.AlignmentPoint.Y;
+                                wspZ = dbText.AlignmentPoint.Z;
+
+                                if ((Math.Round(wspX, 2) == 0.00) && (Math.Round(wspY, 2) == 0.00) && (Math.Round(wspZ, 2) == 0.00)) {
+                                    wspX = dbText.Position.X;
+                                    wspY = dbText.Position.Y;
+                                    wspZ = dbText.Position.Z;
+
+                                }
                                 x = wspX.ToString(format);
                                 y = wspY.ToString(format);
                                 z = wspZ.ToString(format);
@@ -450,8 +468,16 @@ namespace Geo_geo.Class {
                     foreach (SelectedObject selectedObject in selection.Value) {
                         DBText dbText = tr.GetObject(selectedObject.ObjectId, OpenMode.ForRead) as DBText;
 
-                        double wspX = dbText.Position.X;
-                        double wspY = dbText.Position.Y;
+                        double wspX = dbText.AlignmentPoint.X;
+                        double wspY = dbText.AlignmentPoint.Y;
+                        double wspZ = dbText.AlignmentPoint.Z;
+
+                        if ((Math.Round(wspX, 2) == 0.00) && (Math.Round(wspY, 2) == 0.00) && (Math.Round(wspZ, 2) == 0.00)) {
+                            wspX = dbText.Position.X;
+                            wspY = dbText.Position.Y;
+                            wspZ = dbText.Position.Z;
+
+                        }
 
                         string x = wspX.ToString(format);
                         string y = wspY.ToString(format);
@@ -583,7 +609,9 @@ namespace Geo_geo.Class {
                             $"\n\t\t<width>2</width>" +
                             $"\n\t</LineStyle>" +
                             $"\n\t<PolyStyle><fill>0</fill></PolyStyle>" +
-                            $"\n\t<IconStyle id=\"pkt_{layerName}\">" +
+                            $"\n</Style>" +
+                            $"<Style id=\"pkt_{layerName}\">" +
+                            $"\n\t<IconStyle>" +
                             $"\n\t\t<color>{valid_color}</color>" +
                             $"\n\t\t<scale>1</scale>" +
                             $"\n\t\t<heading>0</heading>" +
@@ -846,13 +874,19 @@ namespace Geo_geo.Class {
 
                                     DBText dbText = entity as DBText;
 
-                                    double wspX = dbText.Position.X;
-                                    double wspY = dbText.Position.Y;
-                                    double wspH = dbText.Position.Z;
+                                    double wspX = dbText.AlignmentPoint.X;
+                                    double wspY = dbText.AlignmentPoint.Y;
+                                    double wspZ = dbText.AlignmentPoint.Z;
 
+                                    if ((Math.Round(wspX, 2) == 0.00) || (Math.Round(wspY, 2) == 0.00) || (Math.Round(wspZ, 2) == 0.00)) {
+                                        wspX = dbText.Position.X;
+                                        wspY = dbText.Position.Y;
+                                        wspZ = dbText.Position.Z;
+
+                                    }
                                     string x = wspX.ToString(format);
                                     string y = wspY.ToString(format);
-                                    string h = wspH.ToString(format);
+                                    string h = wspZ.ToString(format);
 
                                     Point3d oldPoint = new Point3d(wspX, wspY, 0.0);
                                     Point3d newPoint = xyTrans.SetEPSG(oldPoint);
@@ -998,7 +1032,7 @@ namespace Geo_geo.Class {
             }
         }
 
-        public List<string> ExportPointsToList(bool reverse = false) {
+        public List<string> ExportPointsToList(bool reverse = false, bool withName = false) {
 
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -1045,9 +1079,16 @@ namespace Geo_geo.Class {
                             DBText dbText = entity as DBText;
 
                             name = dbText.TextString;
-                            wspX = dbText.Position.X;
-                            wspY = dbText.Position.Y;
-                            wspZ = dbText.Position.Z;
+                            wspX = dbText.AlignmentPoint.X;
+                            wspY = dbText.AlignmentPoint.Y;
+                            wspZ = dbText.AlignmentPoint.Z;
+
+                            if ((Math.Round(wspX, 2) == 0.00) && (Math.Round(wspY, 2) == 0.00) && (Math.Round(wspZ, 2) == 0.00)) {
+                                wspX = dbText.Position.X;
+                                wspY = dbText.Position.Y;
+                                wspZ = dbText.Position.Z;
+
+                            }
 
                             x = wspX.ToString(format);
                             y = wspY.ToString(format);
@@ -1082,8 +1123,17 @@ namespace Geo_geo.Class {
 
                         string line = $"{x}\t{y}\t{z}";
 
+                        if (withName) {
+                            line = $"{name}\t{x}\t{y}\t{z}";
+                        }
+
+
                         if (reverse) {
                             line = $"{y}\t{x}\t{z}";
+
+                            if (withName) {
+                                line = $"{name}\t{y}\t{x}\t{z}";
+                            }
                         }
 
                         lines.Add(line);

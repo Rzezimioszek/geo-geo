@@ -1,24 +1,17 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.LinkLabel;
 
 namespace Geo_geo.Class.FORMS {
     public partial class ucMarkery : UserControl {
         public ucMarkery() {
+
             InitializeComponent();
             loadList();
+            loadList(1);
 
 
 
@@ -26,6 +19,12 @@ namespace Geo_geo.Class.FORMS {
 
         private void ucMarkery_Load(object sender, EventArgs e) {
 
+        }
+
+        private void tabControl1_Change(object sender, EventArgs e) {
+            //printMessege($"{tabControl1.SelectedIndex}");
+
+            loadList();
         }
 
         private void btnGo_Click(object sender, EventArgs e) {
@@ -39,75 +38,159 @@ namespace Geo_geo.Class.FORMS {
             Editor ed = doc.Editor;
 
             try {
-                string value = this.lstMarkers.GetItemText(this.lstMarkers.SelectedItem);
+                string value = currentLstValue();
 
                 double zoom = Convert.ToDouble(this.tB.Value);
 
                 cSimple cS = new cSimple();
                 cS.GoToMarker(value, reverse, show, blok, zoom, this.chDel.Checked, double.Parse(this.tbScale.Text));
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
 
-                ed.WriteMessage("\nNie można wczytać");
+                ed.WriteMessage("\nNie można wczytać\n");
 
             }
-           
+
 
         }
 
-   
+
 
         private void btnDelAll_Click(object sender, EventArgs e) {
 
-            string fileName = "C:\\Users\\Public\\Documents\\acMarkers.txt";
+            if (tabControl1.SelectedIndex == 0) {
 
-            if (System.IO.File.Exists(fileName)) {
-                System.IO.File.WriteAllText(fileName, "");
+                string fileName = "C:\\Users\\Public\\Documents\\acMarkers.txt";
+
+                if (System.IO.File.Exists(fileName)) {
+                    System.IO.File.WriteAllText(fileName, "");
+                }
+
+                this.lstMarkers.Items.Clear();
+
+            } else if (tabControl1.SelectedIndex == 1) {
+
+                string fileName = "C:\\Users\\Public\\Documents\\acMarkersID.txt";
+
+                if (System.IO.File.Exists(fileName)) {
+                    System.IO.File.WriteAllText(fileName, "");
+                }
+
+                this.lstMarkersID.Items.Clear();
+
             }
-
-            this.lstMarkers.Items.Clear();
         }
 
         private void btnReload_Click(object sender, EventArgs e) {
             loadList();
+            loadList(1);
 
         }
 
-        private void loadList() {
+        private void loadList(int idx = 0, string filtr = "") {
 
+            string fileName = "";
             string fileContent = "";
-            string fileName = "C:\\Users\\Public\\Documents\\acMarkers.txt";
             string[] lines;
 
 
-            if (System.IO.File.Exists(fileName)) {
+            int j = 0;
 
 
-                using (StreamReader sr = new StreamReader(fileName)) {
-                    fileContent = sr.ReadToEnd();
-                }
+            if ((tabControl1.SelectedIndex == 1) || (idx == 1)) {
 
-                lines = fileContent.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+                fileName = "C:\\Users\\Public\\Documents\\acMarkersID.txt";
 
-                this.lstMarkers.Items.Clear();
+                
 
-                for (int i = 0; i < lines.Length; i++) {
 
-                    string item = lines[i];
-                    if (item == "") {
-                        continue;
+                if (System.IO.File.Exists(fileName)) {
+
+
+                    using (StreamReader sr = new StreamReader(fileName)) {
+                        fileContent = sr.ReadToEnd();
                     }
-                    this.lstMarkers.Items.Insert(i, item);
+
+                    lines = fileContent.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+
+                    this.lstMarkersID.Items.Clear();
+
+                    j = 0;
+
+                    for (int i = 0; i < lines.Length; i++) {
+
+                        string item = lines[i];
+                        if (item == "") {
+                            continue;
+                        }
+
+                        if (filtr != "") {
+                            string[] temp = item.Split(' ');
+
+                            if (this.chFiltr.Checked) {
+                                if (temp[0] != filtr) {
+                                    continue;
+                                }
+
+                            } else {
+                                if (!temp[0].Contains(filtr)) {
+                                    continue;
+                                }
+                            }
+
+
+                        }
+
+                        this.lstMarkersID.Items.Insert(j, item);
+                        j++;
+                    }
+
+                    lblCounterID.Text = $"Liczba elementów: {j}";
+                } else {
+                    System.IO.File.WriteAllText(fileName, "");
                 }
+
             } else {
-                System.IO.File.WriteAllText(fileName, "");
+
+
+                fileName = "C:\\Users\\Public\\Documents\\acMarkers.txt";
+
+
+                if (System.IO.File.Exists(fileName)) {
+
+
+                    using (StreamReader sr = new StreamReader(fileName)) {
+                        fileContent = sr.ReadToEnd();
+                    }
+
+                    lines = fileContent.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+
+                    this.lstMarkers.Items.Clear();
+
+                    j = 0;
+
+                    for (int i = 0; i < lines.Length; i++) {
+
+                        string item = lines[i];
+                        if (item == "") {
+                            continue;
+                        }
+                        this.lstMarkers.Items.Insert(j, item);
+                        j++;
+                    }
+
+                    lblCounter.Text = $"Liczba elementów: {j}";
+                } else {
+                    System.IO.File.WriteAllText(fileName, "");
+                }
             }
+
+            
 
         }
 
         private void btnPaste_Click(object sender, EventArgs e) {
 
-
+            loadList(filtr: "");
 
             GetClipboard();
             loadList();
@@ -122,11 +205,12 @@ namespace Geo_geo.Class.FORMS {
             bool reverse = !this.chReverse.Checked;
             if (reverse) {
                 cO.get_cid("xyh");
-            }
-            else {
+            } else {
                 cO.get_cid("yxh");
             }
-           
+
+            loadList(filtr: "");
+
             GetClipboard();
             loadList();
         }
@@ -150,67 +234,144 @@ namespace Geo_geo.Class.FORMS {
 
             lines = result.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
 
-            string fileName = $"C:\\Users\\Public\\Documents\\acMarkers.txt";
+            if (tabControl1.SelectedIndex == 0) {
 
-            int j = 0;
+                string fileName = $"C:\\Users\\Public\\Documents\\acMarkers.txt";
+
+                int j = 0;
 
 
 
-            if (System.IO.File.Exists(fileName)) {
-                using (StreamWriter streamWriter = File.AppendText(fileName)) {
+                if (System.IO.File.Exists(fileName)) {
+                    using (StreamWriter streamWriter = File.AppendText(fileName)) {
 
-                    for (int i = 0; i < lines.Length; i++) {
+                        for (int i = 0; i < lines.Length; i++) {
 
-                        try {
+                            try {
 
-                            string item = lines[i].Replace(' ', '\t');
+                                string item = lines[i].Replace(' ', '\t');
 
-                            if (item.Contains(".") && item.Contains(",")) {
-                                item = item.Replace(',', '\t');
+                                if (item.Contains(".") && item.Contains(",")) {
+                                    item = item.Replace(',', '\t');
 
-                            }
-                            else {
-                                item = item.Replace(',', '.');
-                            }
+                                } else {
+                                    item = item.Replace(',', '.');
+                                }
 
-                            while (item.Contains("\t\t")) {
+                                while (item.Contains("\t\t")) {
 
-                                item = item.Replace("\t\t", "\t");
+                                    item = item.Replace("\t\t", "\t");
 
-                            }
-                            
+                                }
 
-                            string[] xyh = item.Split('\t');
 
-                            double x = double.Parse(xyh[0]);
-                            double y = double.Parse(xyh[1]);
-                            double h = 0.0;
+                                string[] xyh = item.Split('\t');
 
-                            if (xyh.Length > 2) { h = double.Parse(xyh[2]); }
+                                double x = double.Parse(xyh[0]);
+                                double y = double.Parse(xyh[1]);
+                                double h = 0.0;
 
-                            streamWriter.WriteLine($"{x:f4} {y:f4} {h:f4}");
-                            j++;
-                        } catch { continue; }
+                                if (xyh.Length > 2) { h = double.Parse(xyh[2]); }
+
+                                streamWriter.WriteLine($"{x:f4} {y:f4} {h:f4}");
+                                j++;
+                            } catch { continue; }
+                        }
                     }
+                    ed.WriteMessage($"\nWczytano punktów: {j}\n");
                 }
-                ed.WriteMessage($"\nWczytano punktów: {j}");
+            } else if (tabControl1.SelectedIndex == 1) {
+                string fileName = $"C:\\Users\\Public\\Documents\\acMarkersID.txt";
+
+                int j = 0;
+
+
+
+                if (System.IO.File.Exists(fileName)) {
+                    using (StreamWriter streamWriter = File.AppendText(fileName)) {
+
+                        for (int i = 0; i < lines.Length; i++) {
+
+                            try {
+
+                                string item = lines[i].Replace(' ', '\t');
+
+                                if (item.Contains(".") && item.Contains(",")) {
+                                    item = item.Replace(',', '\t');
+
+                                } else {
+                                    item = item.Replace(',', '.');
+                                }
+
+                                while (item.Contains("\t\t")) {
+
+                                    item = item.Replace("\t\t", "\t");
+
+                                }
+
+
+
+                                string[] xyh = item.Split('\t');
+
+                                string id = "";
+
+                                if (xyh.Length > 2) {
+                                    id = xyh[0];
+                                } else {
+                                    id = "X";
+                                }
+
+
+                                double x = double.Parse(xyh[1]);
+                                double y = double.Parse(xyh[2]);
+                                double h = 0.0;
+
+                                if (xyh.Length > 3) { h = double.Parse(xyh[3]); }
+
+                                streamWriter.WriteLine($"{id} {x:f4} {y:f4} {h:f4}");
+                                j++;
+                            } catch { continue; }
+                        }
+                    }
+                    ed.WriteMessage($"\nWczytano punktów: {j}\n");
+                }
+
+
+
             }
 
         }
 
         private void btnDel_Click(object sender, EventArgs e) {
 
-            this.lstMarkers.Items.RemoveAt(this.lstMarkers.SelectedIndex);
+            if (tabControl1.SelectedIndex == 0) {
 
-            string fileName = $"C:\\Users\\Public\\Documents\\acMarkers.txt";
+                this.lstMarkers.Items.RemoveAt(this.lstMarkers.SelectedIndex);
 
-            using (StreamWriter streamWriter = File.CreateText(fileName)) { 
+                string fileName = $"C:\\Users\\Public\\Documents\\acMarkers.txt";
 
-                for (int i = 0; i < this.lstMarkers.Items.Count; i++) {
+                using (StreamWriter streamWriter = File.CreateText(fileName)) {
 
+                    for (int i = 0; i < this.lstMarkers.Items.Count; i++) {
 
-                    streamWriter.WriteLine(this.lstMarkers.Items[i]);
+                        streamWriter.WriteLine(this.lstMarkers.Items[i]);
 
+                    }
+
+                }
+            } else if (tabControl1.SelectedIndex == 1) {
+
+                this.lstMarkersID.Items.RemoveAt(this.lstMarkersID.SelectedIndex);
+
+                string fileName = $"C:\\Users\\Public\\Documents\\acMarkersID.txt";
+
+                using (StreamWriter streamWriter = File.CreateText(fileName)) {
+
+                    for (int i = 0; i < this.lstMarkersID.Items.Count; i++) {
+
+                        streamWriter.WriteLine(this.lstMarkersID.Items[i]);
+
+                    }
 
                 }
 
@@ -221,7 +382,7 @@ namespace Geo_geo.Class.FORMS {
         private void btnCopy_Click(object sender, EventArgs e) {
 
 
-            string value = this.lstMarkers.GetItemText(this.lstMarkers.SelectedItem);
+            string value = currentLstValue();
 
             value = value.Replace(" ", "\t");
 
@@ -233,23 +394,37 @@ namespace Geo_geo.Class.FORMS {
 
             string value = "";
 
-            for (int i = 0; i < this.lstMarkers.Items.Count; i++) {
+            if (tabControl1.SelectedIndex == 0) {
 
-                if (this.lstMarkers.Items[i].ToString() == "") {
-                    continue;
+                for (int i = 0; i < this.lstMarkers.Items.Count; i++) {
+
+                    if (this.lstMarkers.Items[i].ToString() == "") {
+                        continue;
+                    }
+                    value = $"{value}{this.lstMarkers.Items[i]}{Environment.NewLine}";
+
                 }
+            } else if (tabControl1.SelectedIndex == 1) {
 
+                for (int i = 0; i < this.lstMarkersID.Items.Count; i++) {
 
-                value = $"{value}{this.lstMarkers.Items[i]}{Environment.NewLine}";
+                    if (this.lstMarkersID.Items[i].ToString() == "") {
+                        continue;
+                    }
+                    value = $"{value}{this.lstMarkersID.Items[i]}{Environment.NewLine}";
 
+                }
             }
 
             Clipboard.SetText($"{value}");
 
-
         }
 
         private void lstMarkers_SelectedIndexChanged(object sender, EventArgs e) {
+
+
+            this.lblidx.Text = $"idx: {this.lstMarkers.SelectedIndex}";
+
 
 
             if (chkGo.Checked) {
@@ -263,15 +438,17 @@ namespace Geo_geo.Class.FORMS {
                 Editor ed = doc.Editor;
 
                 try {
-                    string value = this.lstMarkers.GetItemText(this.lstMarkers.SelectedItem);
+                    string value = currentLstValue();
 
                     double zoom = Convert.ToDouble(this.tB.Value);
 
                     cSimple cS = new cSimple();
                     cS.GoToMarker(value, reverse, show, blok, zoom, this.chDel.Checked, double.Parse(this.tbScale.Text));
+
+
                 } catch (Exception ex) {
 
-                    ed.WriteMessage("\nNie można wczytać");
+                    ed.WriteMessage("\nNie można wczytać\n");
                 }
             }
         }
@@ -290,8 +467,7 @@ namespace Geo_geo.Class.FORMS {
                     this.trackBar1.Visible = true;
                 }
 
-            }
-            else {
+            } else {
 
                 this.rb1.Visible = false;
                 this.rb2.Visible = false;
@@ -311,14 +487,28 @@ namespace Geo_geo.Class.FORMS {
 
             string value = "";
 
-            for (int i = 0; i < this.lstMarkers.Items.Count; i++) {
+            if (tabControl1.SelectedIndex == 0) {
 
-                if (this.lstMarkers.Items[i].ToString() == "") {
-                    continue;
+                for (int i = 0; i < this.lstMarkers.Items.Count; i++) {
+
+                    if (this.lstMarkers.Items[i].ToString() == "") {
+                        continue;
+                    }
+
+                    value = $"{value}{this.lstMarkers.Items[i]}{Environment.NewLine}";
+
                 }
+            } else if (tabControl1.SelectedIndex == 1) {
 
+                for (int i = 0; i < this.lstMarkersID.Items.Count; i++) {
 
-                value = $"{value}{this.lstMarkers.Items[i]}{Environment.NewLine}";
+                    if (this.lstMarkersID.Items[i].ToString() == "") {
+                        continue;
+                    }
+
+                    value = $"{value}{this.lstMarkersID.Items[i]}{Environment.NewLine}";
+
+                }
 
             }
 
@@ -349,6 +539,8 @@ namespace Geo_geo.Class.FORMS {
 
         private void btnLoadTxt_Click(object sender, EventArgs e) {
 
+            loadList(filtr: "");
+
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Editor ed = doc.Editor;
 
@@ -376,52 +568,105 @@ namespace Geo_geo.Class.FORMS {
             }
 
             lines = result.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
-            fileName = $"C:\\Users\\Public\\Documents\\acMarkers.txt";
-
             int j = 0;
 
-            if (System.IO.File.Exists(fileName)) {
-                using (StreamWriter streamWriter = File.AppendText(fileName)) {
+            if (tabControl1.SelectedIndex == 0) {
+                fileName = $"C:\\Users\\Public\\Documents\\acMarkers.txt";
 
-                    
 
-                    for (int i = 0; i < lines.Length; i++) {
+                if (System.IO.File.Exists(fileName)) {
+                    using (StreamWriter streamWriter = File.AppendText(fileName)) {
 
-                        try {
 
-                            string item = lines[i].Replace(' ', '\t');
 
-                            item = item.Trim();
-                            //item = lines[i].Replace('&nbsp;', '\t');
+                        for (int i = 0; i < lines.Length; i++) {
 
-                            if (item.Contains(".") && item.Contains(",")) {
-                                item = item.Replace(',', '\t');
+                            try {
 
-                            } else {
-                                item = item.Replace(',', '.');
+                                string item = lines[i].Replace(' ', '\t');
+
+                                item = item.Trim();
+                                //item = lines[i].Replace('&nbsp;', '\t');
+
+                                if (item.Contains(".") && item.Contains(",")) {
+                                    item = item.Replace(',', '\t');
+
+                                } else {
+                                    item = item.Replace(',', '.');
+                                }
+
+                                while (item.Contains("\t\t")) {
+
+                                    item = item.Replace("\t\t", "\t");
+
+                                }
+
+
+                                string[] xyh = item.Split('\t');
+
+                                double x = double.Parse(xyh[0]);
+                                double y = double.Parse(xyh[1]);
+                                double h = 0.0;
+
+                                if (xyh.Length > 2) { h = double.Parse(xyh[2]); }
+
+                                streamWriter.WriteLine($"{x:f4} {y:f4} {h:f4}");
+                                j++;
+                            } catch { continue; }
+                        }
+                    }
+                } else if (tabControl1.SelectedIndex == 1) {
+
+                    fileName = $"C:\\Users\\Public\\Documents\\acMarkersID.txt";
+
+
+                    if (System.IO.File.Exists(fileName)) {
+                        using (StreamWriter streamWriter = File.AppendText(fileName)) {
+
+
+
+                            for (int i = 0; i < lines.Length; i++) {
+
+                                try {
+
+                                    string item = lines[i].Replace(' ', '\t');
+
+                                    item = item.Trim();
+                                    //item = lines[i].Replace('&nbsp;', '\t');
+
+                                    if (item.Contains(".") && item.Contains(",")) {
+                                        item = item.Replace(',', '\t');
+
+                                    } else {
+                                        item = item.Replace(',', '.');
+                                    }
+
+                                    while (item.Contains("\t\t")) {
+
+                                        item = item.Replace("\t\t", "\t");
+
+                                    }
+
+
+                                    string[] xyh = item.Split('\t');
+
+                                    string id = xyh[0];
+                                    double x = double.Parse(xyh[0]);
+                                    double y = double.Parse(xyh[1]);
+                                    double h = 0.0;
+
+                                    if (xyh.Length > 2) { h = double.Parse(xyh[2]); }
+
+                                    streamWriter.WriteLine($"{id} {x:f4} {y:f4} {h:f4}");
+                                    j++;
+                                } catch { continue; }
                             }
-
-                            while (item.Contains("\t\t")) {
-
-                                item = item.Replace("\t\t", "\t");
-
-                            }
+                        }
 
 
-                            string[] xyh = item.Split('\t');
-
-                            double x = double.Parse(xyh[0]);
-                            double y = double.Parse(xyh[1]);
-                            double h = 0.0;
-
-                            if (xyh.Length > 2) { h = double.Parse(xyh[2]); }
-
-                            streamWriter.WriteLine($"{x:f4} {y:f4} {h:f4}");
-                            j++;
-                        } catch { continue; }
                     }
                 }
-                ed.WriteMessage($"\nWczytano punktów: {j}");
+                ed.WriteMessage($"\nWczytano punktów: {j}\n");
             }
 
             loadList();
@@ -439,7 +684,8 @@ namespace Geo_geo.Class.FORMS {
 
             List<string> lines = new List<string>();
 
-            lines = exportPik.ExportPointsToList(reverse=reverse);
+            bool withName = (tabControl1.SelectedIndex == 1);
+            lines = exportPik.ExportPointsToList(reverse = reverse, withName);
 
 
             foreach (string line in lines) {
@@ -462,7 +708,7 @@ namespace Geo_geo.Class.FORMS {
                 Editor ed = doc.Editor;
 
                 try {
-                    string value = this.lstMarkers.GetItemText(this.lstMarkers.SelectedItem);
+                    string value = currentLstValue();
 
                     double zoom = Convert.ToDouble(this.tB.Value);
 
@@ -470,7 +716,7 @@ namespace Geo_geo.Class.FORMS {
                     cS.GoToMarker(value, reverse, false, false, zoom, this.chDel.Checked, double.Parse(this.tbScale.Text));
                 } catch (Exception ex) {
 
-                    ed.WriteMessage("\nNie można wczytać");
+                    ed.WriteMessage("\nNie można wczytać\n");
                 }
             }
 
@@ -479,15 +725,23 @@ namespace Geo_geo.Class.FORMS {
         private void btnUp_Click(object sender, EventArgs e) {
 
             try {
-                this.lstMarkers.SelectedIndex = this.lstMarkers.SelectedIndex - 1;
-            }
-            catch (Exception ex) {
+                if (tabControl1.SelectedIndex == 0) {
+                    this.lstMarkers.SelectedIndex = this.lstMarkers.SelectedIndex - 1;
+                } else if (tabControl1.SelectedIndex == 1) {
+                    this.lstMarkersID.SelectedIndex = this.lstMarkersID.SelectedIndex - 1;
+                }
+
+            } catch (Exception ex) {
             }
         }
 
         private void btnDown_Click(object sender, EventArgs e) {
             try {
-                this.lstMarkers.SelectedIndex = this.lstMarkers.SelectedIndex + 1;
+                if (tabControl1.SelectedIndex == 0) {
+                    this.lstMarkers.SelectedIndex = this.lstMarkers.SelectedIndex + 1;
+                } else if (tabControl1.SelectedIndex == 1) {
+                    this.lstMarkersID.SelectedIndex = this.lstMarkersID.SelectedIndex + 1;
+                }
             } catch (Exception ex) {
             }
         }
@@ -503,8 +757,7 @@ namespace Geo_geo.Class.FORMS {
                 this.lblScale.Visible = true;
                 this.tbScale.Visible = true;
                 this.trackBar1.Visible = true;
-            }
-            else {
+            } else {
                 this.lblScale.Visible = false;
                 this.tbScale.Visible = false;
                 this.trackBar1.Visible = false;
@@ -517,18 +770,24 @@ namespace Geo_geo.Class.FORMS {
 
             if (sc >= 10) {
                 sc = sc - 9;
-            }
-            else {
+            } else {
 
                 sc = sc / 10;
             }
 
             this.tbScale.Text = $"{sc}";
 
+            //resizeBlock();
+
+        }
+
+        private void resizeBlock() {
+
             try {
 
                 bool reverse = !this.chReverse.Checked;
-                string value = this.lstMarkers.GetItemText(this.lstMarkers.SelectedItem);
+
+                string value = currentLstValue();
                 double zoom = Convert.ToDouble(this.tB.Value);
                 cSimple cS = new cSimple();
                 bool blok = rb1.Checked;
@@ -537,8 +796,189 @@ namespace Geo_geo.Class.FORMS {
 
                 cS.GoToMarker(value, reverse, show, blok, zoom, this.chDel.Checked, double.Parse(this.tbScale.Text));
 
+            } catch (Exception ex) { }
+
+        }
+
+        private void printMessege(string messege) {
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            Editor ed = doc.Editor;
+
+            ed.WriteMessage($"\n{messege}\n");
+
+        }
+
+        private string currentLstValue(bool raw = false) {
+            string result = "";
+
+            // printMessege($"{tabControl1.SelectedIndex}");
+
+
+
+            if (tabControl1.SelectedIndex == 1) {
+                string temp = this.lstMarkersID.GetItemText(this.lstMarkersID.SelectedItem);
+
+                if (raw) { return temp; }
+
+                string[] splited = temp.Split(' ');
+
+                result = $"{splited[1]} {splited[2]} {splited[3]}";
+
+            } else if (tabControl1.SelectedIndex == 0) {
+                result = this.lstMarkers.GetItemText(this.lstMarkers.SelectedItem);
             }
-            catch (Exception ex) { }
+
+            //printMessege($"{tabControl1.SelectedIndex}:\t{result}:");
+
+
+            return result;
+        }
+
+        private void lstMarkersID_SelectedIndexChanged(object sender, EventArgs e) {
+
+            this.lblidxID.Text = $"idx: {this.lstMarkersID.SelectedIndex}";
+
+            if (chkGo.Checked) {
+
+                bool reverse = !this.chReverse.Checked;
+                bool show = this.chShow.Checked;
+
+                bool blok = rb1.Checked;
+
+                Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+                Editor ed = doc.Editor;
+
+                try {
+                    string value = currentLstValue();
+
+                    double zoom = Convert.ToDouble(this.tB.Value);
+
+                    cSimple cS = new cSimple();
+                    cS.GoToMarker(value, reverse, show, blok, zoom, this.chDel.Checked, double.Parse(this.tbScale.Text));
+                } catch (Exception ex) {
+
+                    ed.WriteMessage($"\nNie można wczytać\n");
+                }
+            }
+
+        }
+
+        private void lblScale_Click(object sender, EventArgs e) {
+
+        }
+
+        private void btnFiltr_Click(object sender, EventArgs e) {
+            loadList(filtr: this.tbFiltr.Text);
+        }
+
+        private void btnDelFiltr_Click(object sender, EventArgs e) {
+            loadList(filtr: "");
+            this.tbFiltr.Text = "";
+        }
+
+        private void tbScale_TextChanged(object sender, EventArgs e) {
+            resizeBlock();
+        }
+
+        private void btnSwap_Click(object sender, EventArgs e) {
+
+            string value = currentLstValue(raw: true);
+            string[] spl = value.Split(' ');
+
+            if (tabControl1.SelectedIndex == 0) {
+
+
+                value = $"{spl[1]} {spl[0]} {spl[2]}";
+
+                int idx = this.lstMarkers.SelectedIndex;
+                this.lstMarkers.Items.RemoveAt(idx);
+                this.lstMarkers.Items.Insert(idx, value);
+                this.lstMarkers.SelectedIndex = idx;
+
+                string fileName = $"C:\\Users\\Public\\Documents\\acMarkers.txt";
+
+                using (StreamWriter streamWriter = File.CreateText(fileName)) {
+
+                    for (int i = 0; i < this.lstMarkers.Items.Count; i++) {
+
+                        streamWriter.WriteLine(this.lstMarkers.Items[i]);
+
+                    }
+
+                }
+            } else if (tabControl1.SelectedIndex == 1) {
+
+                value = $"{spl[0]} {spl[2]} {spl[1]} {spl[3]}";
+
+                int idx = this.lstMarkersID.SelectedIndex;
+                this.lstMarkersID.Items.RemoveAt(idx);
+                this.lstMarkersID.Items.Insert(idx, value);
+                this.lstMarkersID.SelectedIndex = idx;
+
+                string fileName = $"C:\\Users\\Public\\Documents\\acMarkersID.txt";
+
+                using (StreamWriter streamWriter = File.CreateText(fileName)) {
+
+                    for (int i = 0; i < this.lstMarkersID.Items.Count; i++) {
+
+                        streamWriter.WriteLine(this.lstMarkersID.Items[i]);
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        private void btnSwapAll_Click(object sender, EventArgs e) {
+
+
+            if (tabControl1.SelectedIndex == 0) {
+
+                for (int i = 0; i < this.lstMarkers.Items.Count; i++) {
+
+                    string[] spl = this.lstMarkers.Items[i].ToString().Split(' ');
+                    this.lstMarkers.Items[i] = $"{spl[1]} {spl[0]} {spl[2]}";
+                }
+
+                string fileName = $"C:\\Users\\Public\\Documents\\acMarkers.txt";
+
+                using (StreamWriter streamWriter = File.CreateText(fileName)) {
+
+                    for (int i = 0; i < this.lstMarkers.Items.Count; i++) {
+
+                        streamWriter.WriteLine(this.lstMarkers.Items[i]);
+
+                    }
+                }
+
+
+            } else if (tabControl1.SelectedIndex == 1) {
+                for (int i = 0; i < this.lstMarkersID.Items.Count; i++) {
+
+                    string[] spl = this.lstMarkersID.Items[i].ToString().Split(' ');
+                    this.lstMarkersID.Items[i] = $"{spl[0]} {spl[2]} {spl[1]} {spl[3]}";
+
+                }
+
+                string fileName = $"C:\\Users\\Public\\Documents\\acMarkersID.txt";
+
+                using (StreamWriter streamWriter = File.CreateText(fileName)) {
+
+                    for (int i = 0; i < this.lstMarkersID.Items.Count; i++) {
+
+                        streamWriter.WriteLine(this.lstMarkersID.Items[i]);
+
+                    }
+
+                }
+            }
+        }
+
+        private void chFiltr_CheckedChanged(object sender, EventArgs e) {
+
         }
     }
+
 }

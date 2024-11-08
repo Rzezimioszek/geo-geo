@@ -29,22 +29,27 @@
             // 
             // cboBlok
             // 
+            this.cboBlok.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.cboBlok.FormattingEnabled = true;
-            this.cboBlok.Location = new System.Drawing.Point(8, 3);
+            this.cboBlok.Location = new System.Drawing.Point(3, 3);
             this.cboBlok.Name = "cboBlok";
-            this.cboBlok.Size = new System.Drawing.Size(170, 21);
+            this.cboBlok.Size = new System.Drawing.Size(175, 21);
             this.cboBlok.TabIndex = 11;
             this.cboBlok.SelectedIndexChanged += new System.EventHandler(this.cboBlok_SelectedIndexChanged);
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(8, 30);
+            this.button1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.button1.Location = new System.Drawing.Point(3, 26);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(170, 23);
+            this.button1.Size = new System.Drawing.Size(175, 30);
             this.button1.TabIndex = 12;
             this.button1.Text = "button1";
             this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.button1.Click += new System.EventHandler(this.button1_Click_1);
             // 
             // ucBlocks
             // 

@@ -38,6 +38,8 @@ namespace Geo_geo.Class {
             string url_geoportal3d = "https://geoportal3d.pl/?flytime=0&bbox=";
             string url_geoportal2 = "https://polska.geoportal2.pl/map/www/mapa.php?CFGF=wms&mylayers=%20OSM%20wmts1:ORTOFOTOMAPA@EPSG:2180%20g1:dzialki%20g1:numery_dzialek%20g1:budynki&bbox=";
             string url_geoportal360 = "https://geoportal360.pl/map/#l:";
+            string url_cgeo = "https://www.c-geoportal.pl/map?extent=";
+
 
 
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
@@ -312,6 +314,25 @@ namespace Geo_geo.Class {
 
                     break;
 
+                case ("cgeo"):
+
+                    trans = ctFact.CreateFromCoordinateSystems(epsg217X, epsg2180);
+                    tpoints = trans.MathTransform.Transform(d_point);
+
+                    tpoints[0] = tpoints[0] - 100.00 ;
+                    tpoints[1] = tpoints[1] - 100.00;
+
+                    url = $"{url_cgeo}{tpoints[0]},{tpoints[1]}";
+
+                    tpoints[0] = tpoints[0] + 200.00;
+                    tpoints[1] = tpoints[1] + 200.00;
+
+                    url = $"{url},{tpoints[0]},{tpoints[1]}";
+
+                    ed.WriteMessage($"\n\n{url}");
+                    System.Diagnostics.Process.Start(url);
+                    break;
+
             }
 
 
@@ -419,6 +440,7 @@ namespace Geo_geo.Class {
                         };
                         PromptPointResult ppr = ed.Drag(psr.Value, "\nWskaż punkt: ", callback);
 
+
                         pPtRes = ppr;
 
                         temp = pPtRes.Value;
@@ -443,13 +465,14 @@ namespace Geo_geo.Class {
 
 
 
-            ed.WriteMessage($"\n{temp.X}, {temp.Y}");
+            ed.WriteMessage($"\n{temp.X}, {temp.Y}\n");
 
             pPtRes = ed.GetPoint("\nWskaż punkt");
             return pPtRes;
         }
 
         private ObjectId ImportBlock(string blockName, string filenName) {
+
             if (!File.Exists(filenName))
                 throw new FileNotFoundException("File not found", filenName);
 

@@ -2,18 +2,12 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
-using Autodesk.AutoCAD.Internal;
 using Geo_geo.Class.FORMS;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Windows.Forms.LinkLabel;
-using static System.Windows.Forms.DialogResult;
+using System.Windows.Forms;
+using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace Geo_geo.Class {
     internal class cTest {
@@ -223,7 +217,7 @@ namespace Geo_geo.Class {
 
             }
 
-            
+
         }
 
         public void ImportBlocks() {
@@ -481,7 +475,7 @@ namespace Geo_geo.Class {
                                 Line dummy = new Line(startPoint, endPoint);
                                 Point3d objPts = new Point3d(wspXP, wspYP, 0.0);
 
-                                if (endPoint == objPts) {  continue; }
+                                if (endPoint == objPts) { continue; }
 
                                 if (!InBox(startPoint, endPoint, objPts, prec)) { continue; }
 
@@ -609,7 +603,7 @@ namespace Geo_geo.Class {
 
                                             liczba_porzadkowa++;
                                             //ed.WriteMessage($"{liczba_porzadkowa} {entity.GetType().Name} -> {lineEntity.GetType().Name}");
-                                        }   
+                                        }
                                     }
                                 }
                             } else if (lineEntity.GetType().Name == "Polyline2d") {
@@ -857,7 +851,7 @@ namespace Geo_geo.Class {
                             double Y0 = attRef.Position.Y;
 
                             Point3d newpos = new Point3d(X0, Y0, 0.0);
-                       
+
                             //ed.WriteMessage($"\nBLOCK TRANS={blockRef.BlockTransform}{blockRef.Position}");
 
                             //ed.WriteMessage($"\nAP={attRef.AlignmentPoint}");
@@ -875,7 +869,7 @@ namespace Geo_geo.Class {
                                 try {
                                     double[] mats = new double[16];
 
-                                    
+
 
                                     mats[0] = 1;
                                     mats[1] = 0;
@@ -914,7 +908,7 @@ namespace Geo_geo.Class {
                                     attWrt.AlignmentPoint = attWrt.AlignmentPoint.TransformBy(blockRef.BlockTransform);
 
 
-                                } catch (Exception ex) { ed.WriteMessage(ex.ToString()); }
+                                } catch (System.Exception ex) { ed.WriteMessage(ex.ToString()); }
 
                             } else if (attRef.Justify == AttachmentPoint.BaseRight) {
 
@@ -993,7 +987,7 @@ namespace Geo_geo.Class {
 
                             }
                             break;
-                            }
+                        }
 
                     } else {
                         continue;
@@ -1020,6 +1014,438 @@ namespace Geo_geo.Class {
             return angle;
         }
 
+
+        public static IEnumerable<Point3d> GetVertices(Polyline pline) {
+            for (int i = 0; i < pline.NumberOfVertices; i++) {
+                yield return pline.GetPoint3dAt(i);
+            }
+        }
+
+        public static IEnumerable<Point3d> GetLineVertices(Line line) {
+            yield return line.StartPoint;
+            yield return line.EndPoint;
+        }
+
+        public void GetCoordinatesFromBlock() {
+            var doc = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument;
+            var db = doc.Database;
+            var ed = doc.Editor;
+
+            var options = new PromptEntityOptions("\nSelect block reference: ");
+            options.SetRejectMessage("\nSelected object is not a block reference.");
+            options.AddAllowedClass(typeof(BlockReference), true);
+            var result = ed.GetEntity(options);
+            if (result.Status != PromptStatus.OK)
+                return;
+            using (var tr = db.TransactionManager.StartTransaction()) {
+                // get the selected block reference
+                var blockReference = (BlockReference)tr.GetObject(result.ObjectId, OpenMode.ForRead);
+
+                // get the block definition
+                var blockDefinition = (BlockTableRecord)tr.GetObject(blockReference.BlockTableRecord, OpenMode.ForRead);
+
+
+                if (!blockDefinition.IsDynamicBlock) {
+                    ed.WriteMessage($"\n Is not dinamic");
+                }
+
+
+
+                // collect the polyline vertices in the block definition and transform them as the block reference
+                var points =
+                blockDefinition                                             // from the block definition
+                .Cast<ObjectId>()                                           // get all polylines
+                .Where(id => id.ObjectClass.DxfName == "LINE")
+                .Select(id => (Line)tr.GetObject(id, OpenMode.ForRead))
+                .SelectMany(pl => GetLineVertices(pl))                          // collect the polylines vertices
+                .Distinct()                                                 // remove duplicated points
+                .Select(p => p.TransformBy(blockReference.BlockTransform));  // transform each point as the block reference
+                                                                             //.OrderByDescending(p => p.Y)                                // order points by Y descending
+                                                                             //.ThenBy(p => p.X);                                          // then by X
+
+                // print the points coordinates on the command line and add a red circle on each one
+                var space = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+
+                Autodesk.AutoCAD.DatabaseServices.Polyline pline = new Autodesk.AutoCAD.DatabaseServices.Polyline();
+
+
+                int i = 0;
+
+                Point2d first = new Point2d();
+
+                foreach (var pt in points) {
+                    ed.WriteMessage($"\n{pt:0.00}");
+                    //var circle = new Circle() { Center = pt, Radius = 1.0, ColorIndex = 1 };
+
+                    if (i == 0) { first = new Point2d(pt.X, pt.Y); }
+
+                    Point2d pt2d = new Point2d(pt.X, pt.Y);
+                    pline.AddVertexAt(i, pt2d, 0.0, 0.0, 0.0);
+                    i++;
+
+
+                    //space.AppendEntity(circle);
+                    //tr.AddNewlyCreatedDBObject(circle, true);
+                }
+
+                pline.AddVertexAt(i, first, 0.0, 0.0, 0.0);
+
+                space.AppendEntity(pline);
+                tr.AddNewlyCreatedDBObject(pline, true);
+
+                tr.Commit();
+            }
+        }
+
+        public void VieportFromBlock(bool addToPaper = false) {
+
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            double scale = 2;
+
+            // Ask user to select entities
+            PromptSelectionOptions pso = new PromptSelectionOptions();
+
+            pso.MessageForAdding = "\nSelect objects to explode: ";
+            pso.AllowDuplicates = false;
+            pso.AllowSubSelections = true;
+            pso.RejectObjectsFromNonCurrentSpace = true;
+            pso.RejectObjectsOnLockedLayers = false;
+
+            PromptSelectionResult psr = ed.GetSelection(pso);
+
+            if (psr.Status != PromptStatus.OK)
+
+                return;
+
+            // Check whether to erase the original(s)
+            bool eraseOrig = false;
+
+            if (psr.Value.Count < 1) { return; }
+
+            if (!addToPaper) {
+
+                PromptKeywordOptions pko =
+
+                  new PromptKeywordOptions("\nUsunąć bloki?");
+
+                pko.AllowNone = true;
+
+                pko.Keywords.Add("Tak");
+
+                pko.Keywords.Add("Nie");
+
+                pko.Keywords.Default = "Nie";
+
+
+
+                PromptResult pkr = ed.GetKeywords(pko);
+
+                if (pkr.Status != PromptStatus.OK)
+
+                    return;
+
+
+
+                eraseOrig = (pkr.StringResult == "Tak");
+
+            }
+
+
+            // Collect our exploded objects in a single collection
+            //DBObjectCollection objs = new DBObjectCollection();
+
+            // Loop through the selected objects
+            foreach (SelectedObject so in psr.Value) {
+
+                using (Transaction tr = db.TransactionManager.StartTransaction()) {
+
+                    DBObjectCollection objs = new DBObjectCollection();
+
+                    // Open one at a time
+                    Entity ent = (Entity)tr.GetObject(so.ObjectId, OpenMode.ForRead);
+
+                    BlockReference blockRef = ent as BlockReference;
+
+                    Point3d origin = new Point3d(blockRef.Position.X, blockRef.Position.Y, 0.0);
+
+
+
+
+                    ed.WriteMessage($"\n{ent.GetType()}");
+
+                    // Explode the object into our collection
+                    ent.Explode(objs);
+
+                    string parent_layer = ent.Layer;
+                    ed.WriteMessage($"\n{parent_layer}");
+
+                    // Erase the original, if requested
+                    if (eraseOrig) {
+
+                        ent.UpgradeOpen();
+                        ent.Erase();
+
+                    }
+
+                    BlockTableRecord btr = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+                    Autodesk.AutoCAD.DatabaseServices.Polyline pline = new Autodesk.AutoCAD.DatabaseServices.Polyline();
+                    Point2d first = new Point2d();
+
+                    bool add = true;
+
+                    Point2dCollection unsorted2d = new Point2dCollection();
+
+                    List<string> used = new List<string>();
+
+                    double h = 0.0;
+                    double w = 0.0;
+                    Line longest_line = new Line(new Point3d(0, 0, 0), new Point3d(0.001, 0.001, 0.001)); 
+
+                    int i = 0;
+                    foreach (DBObject obj in objs) {
+
+                        if (obj.GetType().Name != "Line") {
+                            continue;
+                        }
+
+
+
+                        Line nent = (Line)obj;
+                        ed.WriteMessage($"\n{nent.Visible}\t{nent.GetType()}");
+
+                        if (nent.Visible) {
+
+
+                            if (i == 0) {
+                                first = new Point2d(nent.StartPoint.X, nent.StartPoint.Y);
+                            }
+
+                            string temp = $"{Math.Round(nent.StartPoint.X, 2)}{Math.Round(nent.StartPoint.Y, 2)}";
+                            Point2d pt2d = new Point2d(nent.StartPoint.X, nent.StartPoint.Y);
+
+
+                            if (!used.Contains(temp)) {
+                                used.Add(temp);
+                                unsorted2d.Add(pt2d);
+                            }
+
+      
+
+
+                            temp = $"{Math.Round(nent.EndPoint.X, 2)}{Math.Round(nent.EndPoint.Y, 2)}";
+                            pt2d = new Point2d(nent.EndPoint.X, nent.EndPoint.Y);
+
+
+                            if (!used.Contains(temp)) {
+                                used.Add(temp);
+                                unsorted2d.Add(pt2d);
+                            }
+
+                            double line_l = nent.Length;
+
+                            if (h == 0.0) {
+                                h = line_l;
+                            }
+
+                            if (w == 0.0) {
+                                w = line_l;
+                                longest_line = nent;
+                            }
+                            if (line_l < h) {
+                                h = line_l;
+                            }
+
+                            if (line_l > w) {
+                                w = line_l;
+
+                                longest_line = nent;
+                            }
+
+
+
+
+                        }
+
+                    }
+
+
+                    Point2d[] raw = unsorted2d.ToArray();
+
+                    //Array.Sort(raw, new sort2dByX());
+                    //Array.Sort(raw, new sort2dByY());
+
+                    Point2dCollection sorted2d = new Point2dCollection(raw);
+
+                    //pline.AddVertexAt(i, first, 0.0, 0.0, 0.0);
+
+                    foreach (Point2d s2d in sorted2d) {
+
+                        pline.AddVertexAt(i, s2d, 0.0, 0.0, 0.0);
+
+                    }
+
+
+                    if (!addToPaper) {
+
+                        if (add) {
+                            pline.Layer = parent_layer;
+                            pline.Closed = true;
+                            btr.AppendEntity(pline);
+                            tr.AddNewlyCreatedDBObject(pline, true);
+
+
+                        }
+                    } else {
+
+
+                        Array.Sort(raw, new cPointSort.sort2dByX());
+                        double xmin = raw[0].X;
+                        double xmax = raw.Last().X;
+                        Array.Sort(raw, new cPointSort.sort2dByY());
+
+                        Point2d min2d = new Point2d(xmin, raw[0].Y);
+                        Point2d max2d = new Point2d(xmax, raw.Last().Y);
+
+                        ViewTableRecord view = new ViewTableRecord();
+
+                        view.CenterPoint = min2d + ((max2d - min2d) / 2.0);
+                        view.Height = max2d.Y - min2d.Y;
+                        view.Width = max2d.X - min2d.X;
+                        ed.SetCurrentView(view);
+
+                        //BlockTableRecord.ModelSpace
+
+                        ent.Highlight();
+                        ed.UpdateScreen();
+
+                        pline.Layer = parent_layer;
+                        pline.Closed = true;
+
+                        BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                        //BlockTableRecord ps = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.PaperSpace], OpenMode.ForWrite);
+
+                        cFileDlg selector = new cFileDlg();
+
+                        string stg = selector.VieportDialog();
+
+                        ent.Unhighlight();
+
+                        if (stg == "err") { continue; }
+                        if (stg == "ForceStop!") { return; }
+
+
+                        string[] sstg = stg.Split(';');
+
+                        string layout_name = sstg[0];
+                        double vieport_scale = double.Parse(sstg[1]);
+                        bool VPlock = bool.Parse(sstg[2]);
+
+                        //string layout_name = "2WOZ-420-10";
+                        //double vieport_scale = 1.0;
+                        //bool VPlock = true;
+
+                        // https://adndevblog.typepad.com/autocad/2012/05/listing-the-layout-names.html
+                        LayoutManager lm = LayoutManager.Current;
+                        lm.CurrentLayout = layout_name;
+                        BlockTableRecord ps = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.PaperSpace], OpenMode.ForWrite);
+
+                        ObjectId id = ps.AppendEntity(pline);
+                        tr.AddNewlyCreatedDBObject(pline, true);
+
+                        Viewport vp = new Viewport();
+                        vp.Layer = parent_layer;
+
+                        ps.AppendEntity(vp);
+                        tr.AddNewlyCreatedDBObject(vp, true);
+
+                        // mask placement 
+                        var resMat = Matrix3d.Identity;
+                        Point3d p1 = new Point3d(min2d.X, min2d.Y, 0);
+                        Point3d p2 = new Point3d(0, 0, 0);
+                        Vector3d v = (p2 - origin); //
+                        ed.WriteMessage($"\nvector: {v}");
+                        Matrix3d mat = Matrix3d.Displacement(v);
+                        pline.TransformBy(mat);
+                        //
+
+
+                        double wspX = 0.0;
+                        double wspY = 0.0;
+                        int vrt = 0;
+
+                        for (int jk = 0; jk < (pline.NumberOfVertices); jk++) {
+
+                            wspX += Math.Round(pline.GetPoint2dAt(jk).X, 3);
+                            wspY += Math.Round(pline.GetPoint2dAt(jk).Y, 3);
+                            vrt++;
+
+                        }
+
+                        wspX = wspX / vrt;
+                        wspY = wspY / vrt;
+
+                        Point3d vieport_centroid = new Point3d(wspX, wspY, 0.0);
+
+                        // skala
+
+                        if (vieport_scale != 1.0) {
+
+                            Matrix3d scalingMatrix = Matrix3d.Scaling(vieport_scale, vieport_centroid);
+                            pline.TransformBy(scalingMatrix);
+                        }
+                        //
+
+                        vp.CenterPoint = vieport_centroid; // vieport position
+                        //vp.Height = h;
+                        vp.Height = h * vieport_scale;
+
+                        /*var aspect = vp.Width / vp.Height;
+                        if (w / h > aspect) {
+                            h = w / aspect;
+                        }*/
+
+                        vp.ViewHeight = h;
+                        vp.ViewCenter = min2d + ((max2d - min2d) / 2.0); // model position
+                        vp.NonRectClipEntityId = id;
+                        vp.NonRectClipOn = true;
+                        vp.Locked = true; // Blokowanie rzutni
+                        vp.On = VPlock;
+
+
+                        // pline rotation
+                        //Matrix3d curUCSMatrix = doc.Editor.CurrentUserCoordinateSystem;
+                        //CoordinateSystem3d curUCS = curUCSMatrix.CoordinateSystem3d;
+
+                        //double angle = longest_line.Angle;
+
+                        //if (angle > Math.PI) {
+                        //angle = (2 * Math.PI) - longest_line.Angle;
+                        //}
+
+                        //pline.TransformBy(Matrix3d.Rotation(angle, curUCS.Zaxis, new Point3d(0, 0, 0)));
+                        //ed.WriteMessage($"\n{longest_line.Angle}\t{angle}\n");
+
+                    }
+
+                    // And then we commit
+                    tr.Commit();
+
+                }
+
+                if (addToPaper) {
+                    //db.TileMode = false; // vieport
+                    if (doc.Database.TileMode == false)
+                        db.TileMode = true; // model
+                    //ed.SwitchToModelSpace();
+                }
+
+            }
+
+            db.TileMode = false;
+        }
     }
-    
+
 }

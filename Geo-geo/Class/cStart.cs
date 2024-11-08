@@ -197,6 +197,15 @@ namespace Geo_geo
 
         }
 
+        [CommandMethod("S_point_to_cgeo")]
+        public void cmdCgeo() {
+
+            cWeb cO = new Geo_geo.Class.cWeb();
+
+            cO.GetPointBySelect("cgeo");
+
+        }
+
         [CommandMethod("cid")]
         public void cmdCid() {
 
@@ -434,8 +443,8 @@ namespace Geo_geo
 
 
                     psi.Visible = true;
-                    psi.MinimumSize = new System.Drawing.Size(315, 430);
-                    psi.Size = new System.Drawing.Size(315, 430);
+                    psi.MinimumSize = new System.Drawing.Size(423, 333);
+                    psi.Size = new System.Drawing.Size(423, 333);
                 }
 
 
@@ -483,6 +492,39 @@ namespace Geo_geo
                 ed.WriteMessage("\nError: " + ex.Message);
 
             }
+
+
+        }
+
+
+        [CommandMethod("S_StrikethroughText", CommandFlags.UsePickSet)]
+        public void cmdStrikethroughText() {
+
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            cOpisyMapy runner = new cOpisyMapy();
+            runner.StrikethroughText();
+
+
+        }
+
+
+        [CommandMethod("S_StrikethroughTextOnPaper")]
+        public void cmdStrikethroughTextOnPaper() {
+
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            cOpisyMapy runner = new cOpisyMapy();
+            runner.StrikethroughTextOnPaper();
+
+
+        }
+
+        [CommandMethod("S_mypoly")]
+        public void cmdMyPoly() {
+
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            cOther runner = new cOther();
+            runner.MyPolyJig();
+
 
         }
 
@@ -656,7 +698,8 @@ namespace Geo_geo
             try {
 
                 PaletteSet ps = new PaletteSet("Bloki", "", new Guid("{F972C2DB-67CA-4D34-95C0-F2FE64D53767}"));
-                ps.Add("Bloki", new Class.FORMS.ucBlocks());
+                // ps.Add("Bloki", new Class.FORMS.ucBlocks());
+                ps.Add("Bloki", new Class.FORMS.ucBlockTable());
 
 
                 ps.Visible = true;
@@ -726,22 +769,22 @@ namespace Geo_geo
         }
 
 
-        [CommandMethod("S_TEST")]
+        [CommandMethod("S_TEST", CommandFlags.UsePickSet)]
         public void cmdTestComand() {
 
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-            cPoligonBoundry boundry = new cPoligonBoundry();
-            boundry.MovePoligonIfPointInside();
+            cTest c = new cTest();
+            c.GetCoordinatesFromBlock();
 
         }
 
-        [CommandMethod("S_TEST2")]
+        [CommandMethod("S_TEST2", CommandFlags.UsePickSet)]
         public void cmdTestComand2() {
 
 
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             cTest c = new cTest();
-            c.CustomDialog();
+            c.VieportFromBlock(false);
 
         }
 
@@ -749,8 +792,37 @@ namespace Geo_geo
         public void cmdTestComand3() {
 
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-            cOpisyMapy cross = new cOpisyMapy();
-            cross.InsertCrossDescript();
+            cTest c = new cTest();
+            c.VieportFromBlock(true);
+
+        }
+
+
+
+        [CommandMethod("S_BlockToPoliline", CommandFlags.UsePickSet)]
+        public void cmdBlockToPoliline() {
+
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            cTest c = new cTest();
+            c.VieportFromBlock(false);
+
+        }
+
+        [CommandMethod("S_BlockToViewport", CommandFlags.UsePickSet)]
+        public void cmdBlockToViewport() {
+
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            cLayout c = new cLayout();
+            c.VieportFromModelspaceBlock();
+
+        }
+
+        [CommandMethod("S_PolyToViewport", CommandFlags.UsePickSet)]
+        public void cmdPolyToViewport() {
+
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            cLayout c = new cLayout();
+            c.VieportFromPolyline();
 
         }
 
@@ -807,6 +879,21 @@ namespace Geo_geo
 
 
         }
+
+        [CommandMethod("S_P3DtoPLW", CommandFlags.UsePickSet)]
+        public void cmdPoliToPoliLW() {
+
+            Editor ed = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
+
+            ed.WriteMessage($"\nKonwersja !!11!!");
+
+            cKonwersja run = new cKonwersja();
+            run.PolilineToPolilineLW();
+
+
+        }
+
+
 
         [CommandMethod("S_GetGodlo", CommandFlags.UsePickSet)]
         public void cmdGetGodlo() {

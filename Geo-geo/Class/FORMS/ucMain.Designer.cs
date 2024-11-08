@@ -78,6 +78,7 @@
             this.lblFormat.Size = new System.Drawing.Size(71, 24);
             this.lblFormat.TabIndex = 3;
             this.lblFormat.Text = "Format";
+            this.lblFormat.Click += new System.EventHandler(this.lblFormat_Click);
             // 
             // cboTyp
             // 
@@ -126,6 +127,7 @@
             // 
             // cbH0
             // 
+            this.cbH0.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.cbH0.AutoSize = true;
             this.cbH0.Location = new System.Drawing.Point(110, 112);
             this.cbH0.Name = "cbH0";
@@ -173,7 +175,6 @@
             // 
             // nupRow
             // 
-            this.nupRow.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.nupRow.Location = new System.Drawing.Point(176, 188);
             this.nupRow.Name = "nupRow";
             this.nupRow.Size = new System.Drawing.Size(59, 20);
@@ -244,8 +245,6 @@
             // 
             // cboAtr
             // 
-            this.cboAtr.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
             this.cboAtr.FormattingEnabled = true;
             this.cboAtr.Location = new System.Drawing.Point(6, 112);
             this.cboAtr.Name = "cboAtr";
@@ -257,6 +256,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+            this.BackColor = System.Drawing.SystemColors.Control;
             this.Controls.Add(this.cboAtr);
             this.Controls.Add(this.cboBlok);
             this.Controls.Add(this.nupRow);

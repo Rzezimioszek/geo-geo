@@ -1,18 +1,9 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
 
 namespace Geo_geo.Class.FORMS {
     public partial class ucBlocks : UserControl {
@@ -74,32 +65,75 @@ namespace Geo_geo.Class.FORMS {
 
             List<string> blocks = new List<string>();
 
-            string chosen = this.cboBlok.GetItemText(this.cboBlok.SelectedItem);
+            string blockName = this.cboBlok.GetItemText(this.cboBlok.SelectedItem);
 
-            using (Transaction trans = db.TransactionManager.StartTransaction()) {
-                BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
+            using (Transaction tr = db.TransactionManager.StartTransaction()) {
+                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
 
-                foreach (ObjectId btrId in bt) {
-                    BlockTableRecord btr = trans.GetObject(btrId, OpenMode.ForWrite) as BlockTableRecord;
+                if (!bt.Has(blockName))
+                    throw new ArgumentException("Block definition not found", blockName);
 
-                    if (btr.IsLayout || btr.IsAnonymous || btr.IsFromExternalReference)
-                        continue;
+                ObjectId blockId = bt[blockName];
 
-                    if (btr.Name.ToString() == chosen) {
-                        Scale3d blkScale = new Scale3d(1.0, 1.0, 1.0);
-                        ObjectId bdId = bt[btr.Name.ToString()];
-                        Point3d pt = new Point3d(0, 0, 0);
+                Entity entity = tr.GetObject(blockId, OpenMode.ForRead) as Entity;
 
-                        BlockReference insblkref = new BlockReference(pt, bdId);
-                        insblkref.ScaleFactors = blkScale;
-                        insblkref.Rotation = 0;
+                string objType = entity.GetType().Name;
 
-                        trans.AddNewlyCreatedDBObject(insblkref, true);
-                        trans.Commit();
+                ed.WriteMessage($"\n{objType}\n");
 
 
-                    }
+            }
+        }
+
+        private void button1_Click_1(object sender, EventArgs e) {
+
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+
+            string blockName = this.cboBlok.GetItemText(this.cboBlok.SelectedItem);
+
+            ed.WriteMessage($"\n{blockName}\n");
+
+            try {
+
+                using (Transaction tr = db.TransactionManager.StartTransaction()) {
+                    BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+                    ed.WriteMessage($"\nBlockTable connected\n");
+
+                    if (!bt.Has(blockName))
+                        throw new ArgumentException("Block definition not found", blockName);
+
+                    ed.WriteMessage($"\n1\n");
+
+                    ObjectId blockId = bt[blockName];
+
+                    ed.WriteMessage($"\n2\n");
+
+
+                    BlockTableRecord btr = tr.GetObject(blockId, OpenMode.ForRead) as BlockTableRecord;
+
+                    ed.WriteMessage($"\n3\n");
+
+
+                    
+
+                    ed.WriteMessage($"\n4{btr.GetType().Name}\n");
+
+
+
+
+                    //string objType = entity.GetType().Name;
+
+                    //ed.WriteMessage($"\n{objType}\n");
+
+
                 }
+            } catch (Exception er) {
+
+                ed.WriteMessage($"\n{er}\n");
             }
         }
     }

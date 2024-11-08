@@ -1,4 +1,8 @@
-﻿using Autodesk.AutoCAD.DatabaseServices.Filters;
+﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.DatabaseServices.Filters;
+using Autodesk.AutoCAD.EditorInput;
+using Geo_geo.Class.FORMS;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -58,6 +62,29 @@ namespace Geo_geo.Class {
 
             return fileName;
 
+        }
+
+        public string VieportDialog(string defScale = "1",string defActive = "True") {
+
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            using (fLayoutSelector frm = new fLayoutSelector(Cursor.Position.X, Cursor.Position.Y, defScale, defActive)) {
+
+                // frm.SetDesktopLocation(Cursor.Position.X, Cursor.Position.Y);
+
+                if (frm.ShowDialog() == System.Windows.Forms.DialogResult.OK) {
+                    //ed.WriteMessage($"\n{frm.ReturnValue}");
+                    return frm.ReturnValue;
+                }
+
+
+
+            }
+
+            string result = "err";
+            return result;
         }
     }
 }
