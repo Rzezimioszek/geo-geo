@@ -4,7 +4,13 @@ Rozszerzenie dla geodetów i nie tylko dla Autocad 2018+
 
 ---
 
-Najważniejsze funkcje przedstawione na gifie:
+Najważniejsze funkcje przedstawione na gifach:
+
+# Pinezki
+![acad2](https://github.com/user-attachments/assets/1bb8e786-9a6e-4c0f-a8ad-02a07824e9fe)
+![acad3](https://github.com/user-attachments/assets/cbe09af6-5e92-4d7c-8492-95c536dabd99)
+
+# Siatka krzyży i godło
 
 ---
 Instalacja
